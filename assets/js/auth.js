@@ -289,8 +289,13 @@
     }
   }
 
+  const AUTO_PUSH_DELAY = 600;
+  let retryDelay = 1000;
+  let changeSeq = 0;
+
   async function syncNow() {
     if (!session || syncing) return;
+    const seq = changeSeq;
     syncing = true;
     setStatus('syncing');
     try {
@@ -301,41 +306,50 @@
       if (JSON.stringify(merged) !== JSON.stringify(local)) APP.replaceState(merged);
       await pushRemote(merged);
       lastPull = Date.now();
+      if (changeSeq === seq) dirty = false;
+      retryDelay = 1000;
       setStatus('synced');
     } catch (e) {
       console.warn('同步失败', e);
       setStatus('error');
     } finally {
       syncing = false;
-      if (dirty) {
-        dirty = false;
-        queuePush();
-      }
+      if (dirty) queuePush(300);
     }
   }
 
-  function queuePush() {
+  async function flushPush() {
     if (!session) return;
+    if (syncing) {
+      pushTimer = setTimeout(flushPush, 350);
+      return;
+    }
+    const seq = changeSeq;
+    syncing = true;
+    try {
+      await ensureFresh();
+      await pushRemote(APP.getState());
+      lastPull = Date.now();
+      if (changeSeq === seq) dirty = false;
+      retryDelay = 1000;
+      setStatus('synced');
+    } catch (e) {
+      console.warn('自动同步失败', e);
+      setStatus('error');
+      retryDelay = Math.min(retryDelay * 2, 10000);
+      pushTimer = setTimeout(flushPush, retryDelay);
+    } finally {
+      syncing = false;
+    }
+  }
+
+  function queuePush(delay = AUTO_PUSH_DELAY) {
+    if (!session) return;
+    changeSeq += 1;
     dirty = true;
     clearTimeout(pushTimer);
     setStatus('pending');
-    pushTimer = setTimeout(async () => {
-      if (!session) return;
-      if (syncing) return;
-      syncing = true;
-      try {
-        await ensureFresh();
-        await pushRemote(APP.getState());
-        lastPull = Date.now();
-        dirty = false;
-        setStatus('synced');
-      } catch (e) {
-        console.warn('推送失败', e);
-        setStatus('error');
-      } finally {
-        syncing = false;
-      }
-    }, 1200);
+    pushTimer = setTimeout(flushPush, delay);
   }
 
   /* ---------------- leaderboard ---------------- */
@@ -453,10 +467,10 @@
 
   function statusText() {
     if (!session) return '仅保存在本地浏览器';
-    if (status === 'syncing') return '正在同步…';
-    if (status === 'pending') return '有改动待同步';
-    if (status === 'error') return '同步失败，进度仍在本地';
-    if (status === 'synced') return '已同步到云端';
+    if (status === 'syncing') return '正在自动同步…';
+    if (status === 'pending') return '检测到改动，自动同步中…';
+    if (status === 'error') return '自动同步失败，进度仍在本地';
+    if (status === 'synced') return '已自动同步到云端';
     return '已登录';
   }
 
@@ -600,24 +614,43 @@
       <p class="auth-lead">${nickname ? esc(nickname) + ' · ' : ''}学习进度已与本账号关联。</p>
       <div class="auth-account">
         <div class="auth-account-row"><span>同步状态</span><b id="authSyncStatus">${statusText()}</b></div>
+        <div class="auth-account-row"><span>同步方式</span><b>自动 · 改动后约 0.6 秒</b></div>
         <div class="auth-account-row"><span>本地进度</span><b>始终保留</b></div>
         <div class="auth-account-row"><span>云端数据</span><b>仅自己可读写</b></div>
       </div>
       <div class="auth-actions">
-        <button class="btn btn-primary" type="button" id="authSyncNow">立即同步</button>
+        <button class="btn btn-primary" type="button" id="authSyncNow">立即补同步</button>
         <button class="btn btn-soft" type="button" id="authLogout">退出登录</button>
       </div>
-      <p class="auth-note">换设备时，用同一个用户名和密码登录即可拉取并合并进度。忘记密码需要管理员在 Supabase 后台重置。</p>`;
+      <p class="auth-note">检测到进度变化后会自动保存到云端；断网时会先保存在本地，恢复网络后自动重试。换设备时，用同一个用户名和密码登录即可拉取并合并进度。</p>`;
 
     $('#authSyncNow')?.addEventListener('click', async () => {
       const btn = $('#authSyncNow');
       if (btn) { btn.disabled = true; btn.textContent = '同步中…'; }
       await syncNow();
-      if (btn) { btn.disabled = false; btn.textContent = '立即同步'; }
+      if (btn) { btn.disabled = false; btn.textContent = '立即补同步'; }
       renderAccount();
       toast(status === 'synced' ? '同步完成' : '同步失败，本地进度仍在');
     });
     $('#authLogout')?.addEventListener('click', signOut);
+  }
+
+  function flushOnPageHide() {
+    if (!session || (!dirty && status !== 'error' && status !== 'pending')) return;
+    try {
+      const uid = session.user.id;
+      fetch(`${API}/rest/v1/progress?on_conflict=user_id`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          apikey: KEY,
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify([{ user_id: uid, state: APP.getState(), updated_at: new Date().toISOString() }])
+      }).catch(() => {});
+    } catch { /* page is leaving */ }
   }
 
   /* ---------------- bootstrap ---------------- */
@@ -648,6 +681,14 @@
         if (rankVisible()) loadLeaderboard(rankPeriod);
       }
     });
+
+    window.addEventListener('online', () => {
+      if (session && (dirty || status === 'error')) queuePush(0);
+    });
+    window.addEventListener('pagehide', flushOnPageHide);
+    setInterval(() => {
+      if (session && dirty && !syncing) queuePush(0);
+    }, 15000);
 
     document.addEventListener('click', e => {
       const tab = e.target.closest('[data-rank-period]');
