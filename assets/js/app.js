@@ -1970,7 +1970,7 @@
       <div class="plan-note">训练设计参考宋浩 750 题的题型分类思路与网课节奏：先按章节建立框架，再按题型集中突破，最后用错题和限时卷收口。站内题目与解析均为原创，不复制课程或题集原文，也不替代教材课后题与真题。</div>
       <div class="plan-template-head">
         <div><div class="eyebrow">SIX-WEEK TEMPLATE</div><h2>六周模板 · 可勾选任务</h2></div>
-        <span>22 个任务，按需取用</span>
+        <span>${PLAN.reduce((n, p) => n + p.tasks.length, 0)} 个任务，按需取用</span>
       </div>
       ${phases}
     </div>`;
