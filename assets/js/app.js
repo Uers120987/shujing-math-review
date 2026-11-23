@@ -170,6 +170,7 @@
   }
 
   let state = loadState();
+  let suppressSync = false;
   let currentRoute = { name: 'home', param: null, query: new URLSearchParams() };
   let quizSession = null;
   let examSession = null;
@@ -180,10 +181,12 @@
 
   function saveState() {
     try {
+      state._updatedAt = Date.now();
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
     } catch (e) {
       console.warn('保存失败', e);
     }
+    if (!suppressSync) window.ShujingAuth?.queuePush?.();
   }
 
   function markActivity(n = 1) {
@@ -2289,6 +2292,18 @@
       openSearch();
     }
   }
+
+  window.ShujingApp = {
+    getState: () => JSON.parse(JSON.stringify(state)),
+    replaceState: next => {
+      suppressSync = true;
+      state = { ...next };
+      saveState();
+      suppressSync = false;
+      renderRoute({ keepScroll: true });
+    },
+    getMastery: () => mastery()
+  };
 
   function init() {
     initTheme();
