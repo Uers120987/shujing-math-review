@@ -361,7 +361,7 @@
       case 'home': page = renderHome(); break;
       case 'chapter': page = renderChapter(currentRoute.param); break;
       case 'quiz': page = renderQuiz(currentRoute.param); break;
-      case 'exam': page = renderExam(); break;
+      case 'exam': page = renderExam(currentRoute.param); break;
       case 'mistakes': page = renderMistakes(); break;
       case 'formulas': page = renderFormulas(); break;
       case 'plan': page = renderPlan(); break;
@@ -477,7 +477,14 @@
         parts.push({ label: c.title, href: `#/chapter/${c.id}` });
         parts.push({ label: '章节测试' });
       }
-    } else if (r.name === 'exam') parts.push({ label: '综合测试' });
+    } else if (r.name === 'exam') {
+      if (SUBJECTS.includes(r.param)) {
+        parts.push({ label: SUBJECT_NAME[r.param], href: '#/exam' });
+        parts.push({ label: '综合测试' });
+      } else {
+        parts.push({ label: '综合测试' });
+      }
+    }
     else if (r.name === 'mistakes') parts.push({ label: '错题本' });
     else if (r.name === 'formulas') parts.push({ label: '公式手册' });
     else if (r.name === 'plan') parts.push({ label: '复习计划' });
@@ -613,8 +620,8 @@
     const examBanner = `
       <section class="exam-banner">
         <div>
-          <h2>准备好，用 45 分钟检验一次</h2>
-          <p>20 道题，覆盖高数、线代与机械制图；交卷后按章节拆解正确率。</p>
+          <h2>高数、线代、制图，分开检验</h2>
+          <p>每科一张独立卷，45 分钟；交卷后只按本学科章节拆解正确率。</p>
         </div>
         <div class="banner-actions">
           <a class="btn btn-soft" href="#/plan">${icon('plan')}按考试时间校准</a>
@@ -647,9 +654,10 @@
     const pct = chapterPct(id);
     const read = readCount(c);
     const best = quizBest(id);
-    const idx = CHAPTERS.indexOf(c);
-    const prev = CHAPTERS[idx - 1];
-    const next = CHAPTERS[idx + 1];
+    const subjectChapters = CHAPTERS.filter(x => x.subject === c.subject);
+    const idx = subjectChapters.indexOf(c);
+    const prev = subjectChapters[idx - 1];
+    const next = subjectChapters[idx + 1];
     const mark = c.subject === 'calc' ? '∫' : c.subject === 'drawing' ? '图' : 'A';
 
     const metaChips = [
@@ -1124,8 +1132,13 @@
   }
 
   /* ------------------------------ Exam ------------------------------ */
-  function sampleExamQuestions() {
-    const pools = CHAPTERS.map(c => ({ c, qs: shuffle(chapterQuestions(c.id)) }));
+  function examSubjectChapters(subject) {
+    return CHAPTERS.filter(c => c.subject === subject);
+  }
+
+  function sampleExamQuestions(subject) {
+    const chapters = examSubjectChapters(subject);
+    const pools = chapters.map(c => ({ c, qs: shuffle(chapterQuestions(c.id)) }));
     const picked = [];
     pools.forEach(p => { if (p.qs.length) picked.push(p.qs.pop()); });
     const rest = shuffle(pools.flatMap(p => p.qs));
@@ -1133,9 +1146,11 @@
     return shuffle(picked).slice(0, 20);
   }
 
-  function beginExam() {
+  function beginExam(subject) {
+    if (!SUBJECTS.includes(subject)) return;
     examSession = {
-      qs: sampleExamQuestions(),
+      subject,
+      qs: sampleExamQuestions(subject),
       index: 0,
       responses: {},
       startedAt: Date.now(),
@@ -1146,42 +1161,81 @@
     renderRoute({ keepScroll: false });
   }
 
-  function renderExam() {
+  function renderExam(subject) {
+    const subj = SUBJECTS.includes(subject) ? subject : null;
+    if (!subj) return renderExamHub();
+    if (examSession && examSession.subject !== subj) examSession = null;
     if (examSession?.finished) return renderExamResult();
     if (examSession) return renderExamRun();
-    return renderExamIntro();
+    return renderExamIntro(subj);
   }
 
-  function renderExamIntro() {
-    const history = state.exams.slice(0, 4);
+  function renderExamHub() {
+    const cards = SUBJECTS.map(subject => {
+      const chapters = examSubjectChapters(subject);
+      const pool = chapters.reduce((n, c) => n + chapterQuestions(c.id).length, 0);
+      const total = Math.min(20, pool);
+      const last = state.exams.find(h => h.subject === subject);
+      return `<a class="exam-hub-card" href="#/exam/${subject}" data-subject="${subject}">
+        <div class="exam-hub-top"><span class="chip ${subjectColor(subject) || 'accent'}">${SUBJECT_NAME[subject]}</span><span>${chapters.length} 章</span></div>
+        <h2>${SUBJECT_NAME[subject]}综合测试</h2>
+        <p>${total} 道题 · 45 分钟 · 100 分制</p>
+        <div class="exam-hub-foot">
+          <span>${last ? `上次 ${last.correct}/${last.total} · ${formatDate(last.at)}` : '还没有考试记录'}</span>
+          <b>${icon('clock')}开始</b>
+        </div>
+      </a>`;
+    }).join('');
+
     return `<div class="exam-page">
       <section class="exam-intro">
         <div class="hero-kicker">FINAL SIMULATION · 综合测试</div>
-        <h1>45 分钟，20 道题，<br>看看这一学期学到了什么。</h1>
-        <p>按章节分层抽题，覆盖高等数学、线性代数与机械制图。交卷后给出总分、章节正确率和逐题解析；未作答的题也会进入错题本。</p>
+        <h1>三门课，三张卷，<br>分开测才看得清。</h1>
+        <p>高数、线代、机械制图各自独立抽题，不再混在一张卷子里。交卷后只按本学科章节拆解正确率。</p>
         <div class="exam-facts">
-          <span class="exam-fact"><b>20</b> 道题</span>
+          <span class="exam-fact"><b>3</b> 个学科</span>
+          <span class="exam-fact"><b>${CHAPTERS.length}</b> 章题库</span>
+          <span class="exam-fact"><b>45</b> 分钟 / 卷</span>
+        </div>
+      </section>
+      <div class="exam-hub-grid">${cards}</div>
+      <div class="course-note" style="margin-top:16px">${icon('info')} 每科独立计时、独立记录成绩；进入后本次只抽本学科题目。</div>
+    </div>`;
+  }
+
+  function renderExamIntro(subject) {
+    const chapters = examSubjectChapters(subject);
+    const pool = chapters.reduce((n, c) => n + chapterQuestions(c.id).length, 0);
+    const total = Math.min(20, pool);
+    const history = state.exams.filter(h => h.subject === subject).slice(0, 4);
+    return `<div class="exam-page">
+      <section class="exam-intro">
+        <div class="hero-kicker">FINAL SIMULATION · ${SUBJECT_NAME[subject]}</div>
+        <h1>${SUBJECT_NAME[subject]}综合测试，<br>只考这一门。</h1>
+        <p>从${SUBJECT_NAME[subject]} ${chapters.length} 章题库中分层抽 ${total} 题。交卷后按本学科章节拆解正确率，其他学科不参与本次抽题。</p>
+        <div class="exam-facts">
+          <span class="exam-fact"><b>${total}</b> 道题</span>
           <span class="exam-fact"><b>45</b> 分钟</span>
           <span class="exam-fact"><b>100</b> 分制</span>
-          <span class="exam-fact"><b>${CHAPTERS.length}</b> 章题库</span>
+          <span class="exam-fact"><b>${chapters.length}</b> 章题库</span>
         </div>
-        <button class="btn btn-lg" type="button" data-action="exam-start">${icon('clock')}开始考试</button>
+        <button class="btn btn-lg" type="button" data-action="exam-start" data-subject="${subject}">${icon('clock')}开始${SUBJECT_SHORT[subject]}考试</button>
       </section>
       <div class="home-cols" style="margin-top:18px">
         <section class="panel tips-panel">
           <h2>考试规则</h2>
-          <div class="tip"><span class="tip-num">1</span><div><h3>不限次数，随机抽题</h3><p>每次开始都会重新抽题；建议先完成各章节测试，再来做综合卷。</p></div></div>
+          <div class="tip"><span class="tip-num">1</span><div><h3>只抽本学科题目</h3><p>高数、线代、制图各自独立；不会再把其他学科混进来。</p></div></div>
           <div class="tip"><span class="tip-num">2</span><div><h3>时间到自动交卷</h3><p>右上角计时器归零会自动提交，已作答的内容不会丢失。</p></div></div>
           <div class="tip"><span class="tip-num">3</span><div><h3>交卷后才看解析</h3><p>考试过程中不显示对错，避免“边做边被提示”。</p></div></div>
         </section>
         <section class="panel tips-panel">
-          <h2>最近成绩</h2>
+          <h2>最近成绩 · ${SUBJECT_NAME[subject]}</h2>
           ${history.length ? history.map(h => `<div class="review-item" style="margin-top:8px">
             <span class="ri-mark" style="background:var(--surface-2);color:var(--muted)">${Math.round(h.correct / h.total * 100)}</span>
             <div class="ri-main"><div class="ri-stem" style="font-size:12px">${h.correct}/${h.total} 题 · ${formatDate(h.at)}</div>
             <div class="ri-meta"><span class="chip">用时 ${formatTime(h.used)}</span></div></div>
-          </div>`).join('') : `<p style="color:var(--muted);font-size:12px;margin-top:10px">还没有考试记录。第一次不用有压力，把它当成一次诊断。</p>
-          <div style="margin-top:14px"><a class="btn btn-soft btn-sm" href="#/plan">${icon('plan')}查看复习计划</a></div>`}
+          </div>`).join('') : `<p style="color:var(--muted);font-size:12px;margin-top:10px">还没有${SUBJECT_NAME[subject]}考试记录。第一次不用有压力，把它当成一次诊断。</p>
+          <div style="margin-top:14px"><a class="btn btn-soft btn-sm" href="#/exam">${icon('arrowLeft')}返回科目选择</a></div>`}
         </section>
       </div>
     </div>`;
@@ -1226,7 +1280,7 @@
         <div class="exam-main">
           <div class="q-card">
             <div class="q-meta">
-              <span class="chip gold">综合测试</span>
+              <span class="chip gold">${SUBJECT_NAME[s.subject]} · 综合测试</span>
               <span class="chip">${esc(chapterById.get(q.chapter)?.title || '')}</span>
               <span class="chip">${q.type === 'fill' ? '填空题' : q.type === 'judge' ? '判断题' : '单项选择题'}</span>
             </div>
@@ -1317,7 +1371,7 @@
     s.finished = true;
     s.finishedAt = Date.now();
     s.used = used;
-    state.exams.unshift({ at: Date.now(), correct, total: s.qs.length, used });
+    state.exams.unshift({ at: Date.now(), correct, total: s.qs.length, used, subject: s.subject });
     state.exams = state.exams.slice(0, 10);
     saveState();
     renderRoute({ keepScroll: false });
@@ -1344,7 +1398,7 @@
 
     return `<div class="result">
       <div class="result-hero">
-        <div class="result-kicker">FINAL SIMULATION · 完成</div>
+        <div class="result-kicker">FINAL SIMULATION · ${SUBJECT_NAME[s.subject]} · 完成</div>
         <div class="result-score">${score}<small>分</small></div>
         <div class="result-title">${score >= 85 ? '状态很好，保持手感' : score >= 60 ? '及格线以上，继续补漏洞' : '先把基础章节重新过一遍'}</div>
         <div class="result-sub">答对 ${correct} / ${total} 题 · 用时 ${formatTime(s.used || 0)} · 满分 100</div>
@@ -1354,9 +1408,9 @@
           <div class="result-stat"><b>${score}%</b><span>总正确率</span></div>
         </div>
         <div class="result-actions">
-          <button class="btn btn-primary" type="button" data-action="exam-retry">${icon('refresh')}再来一套</button>
+          <button class="btn btn-primary" type="button" data-action="exam-retry" data-subject="${s.subject}">${icon('refresh')}再来一套</button>
           <a class="btn btn-soft" href="#/mistakes">${icon('mistakes')}查看错题本</a>
-          <a class="btn btn-ghost" href="#/home">${icon('home')}学习总览</a>
+          <a class="btn btn-ghost" href="#/exam">${icon('arrowLeft')}科目选择</a>
         </div>
       </div>
       <section class="panel" style="padding:20px 22px;margin-top:18px">
@@ -2229,7 +2283,7 @@
       }
       case 'exam-start':
       case 'exam-retry':
-        beginExam();
+        beginExam(el.dataset.subject || examSession?.subject);
         break;
       case 'exam-select': {
         if (!examSession || examSession.finished) return;
