@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="数径：面向大一上学期的高等数学与线性代数复习站。同济教材章节知识地图、原创题库、错题本、公式手册与六周复习计划。">
+  <meta name="theme-color" content="#12283f">
+  <title>数径 · 高数线代复习站</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312283f'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23e9c58a' font-family='Georgia,serif'%3E%E2%88%91%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$']],
+        displayMath: [['$$', '$$']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      startup: {
+        typeset: false
+      }
+    };
+  </script>
+  <script defer src="vendor/tex-svg.js"></script>
+  <script defer src="assets/js/data-calc.js"></script>
+  <script defer src="assets/js/data-linear.js"></script>
+  <script defer src="assets/js/data-questions.js"></script>
+  <script defer src="assets/js/data-questions-extra.js"></script>
+  <script defer src="assets/js/data-extra.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="主导航">
+      <a class="brand" href="#/home" aria-label="数径首页">
+        <span class="brand-mark" aria-hidden="true">∑</span>
+        <span class="brand-copy">
+          <strong>数径</strong>
+          <small>MATH REVIEW · 2026</small>
+        </span>
+      </a>
+      <button class="sidebar-close" type="button" data-action="close-sidebar" aria-label="关闭菜单">×</button>
+
+      <div class="sidebar-scroll">
+        <div class="sidebar-label">学习总览</div>
+        <nav class="nav" id="sidebarNav" aria-label="学习导航"></nav>
+        <div class="sidebar-quote">
+          <span class="sidebar-quote-mark">“</span>
+          <p>不积跬步，无以至千里。</p>
+          <small>把每一章，走成一条清晰的路。</small>
+        </div>
+      </div>
+
+      <div class="sidebar-foot">
+        <div class="side-progress">
+          <div class="side-progress-head">
+            <span>总掌握度</span>
+            <b id="sideOverall">0%</b>
+          </div>
+          <div class="progress"><i id="sideBar" style="width:0%"></i></div>
+        </div>
+        <div class="side-actions">
+          <button class="icon-btn on-dark" type="button" data-action="toggle-theme" aria-label="切换深浅色">
+            <span id="themeIcon"></span>
+          </button>
+          <a class="icon-btn on-dark" href="#/formulas" aria-label="公式手册" title="公式手册">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14M5 12h9M5 20h6"/><path d="M18 13v7M14.5 16.5h7"/></svg>
+          </a>
+          <span class="local-badge" title="所有学习记录只保存在当前浏览器">本地保存</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="scrim" id="scrim" hidden></div>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn menu-btn" type="button" data-action="toggle-sidebar" aria-label="打开菜单" aria-expanded="false" aria-controls="sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <nav class="crumbs" id="crumbs" aria-label="面包屑"></nav>
+        </div>
+        <div class="topbar-actions">
+          <button class="search-trigger" type="button" data-action="open-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span>搜索知识点、公式</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <div class="streak-pill" title="连续学习天数">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4 0 7-3 7-7 0-3-2-5-3-7-1 3-3 4-4 4 0-3-1-6-3-8 0 4-4 6-4 11 0 4 3 7 7 7Z"/></svg>
+            <b id="streakTop">0</b><span>天</span>
+          </div>
+          <button class="icon-btn theme-top" type="button" data-action="toggle-theme" aria-label="切换深浅色">
+            <span id="themeIconTop"></span>
+          </button>
+        </div>
+      </header>
+
+      <main class="view" id="view" tabindex="-1">
+        <div class="boot">
+          <div class="boot-mark">∑</div>
+          <p>正在展开你的复习路线…</p>
+        </div>
+      </main>
+
+      <footer class="site-foot">
+        <span>数径 · 高数 × 线代复习站</span>
+        <span>同济高数七版上册 · 同济线代六版</span>
+        <span>学习记录仅保存在本地浏览器</span>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal" id="searchModal" hidden>
+    <div class="modal-backdrop" data-action="close-search"></div>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+      <div class="search-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <h2 id="searchTitle" class="sr-only">站内搜索</h2>
+        <input id="searchInput" type="search" placeholder="搜索：洛必达、特征值、分部积分…" autocomplete="off" spellcheck="false">
+        <button class="kbd-btn" type="button" data-action="close-search">Esc</button>
+      </div>
+      <div class="search-results" id="searchResults">
+        <div class="search-hint">
+          <span>试试搜索</span>
+          <button type="button" data-search="等价无穷小">等价无穷小</button>
+          <button type="button" data-search="特征值">特征值</button>
+          <button type="button" data-search="分部积分">分部积分</button>
+          <button type="button" data-search="正定">正定</button>
+        </div>
+      </div>
+      <div class="search-foot">
+        <span><kbd>↵</kbd> 打开结果</span>
+        <span><kbd>Esc</kbd> 关闭</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div class="noscript">请启用 JavaScript 以使用复习站。</div>
+  </noscript>
+</body>
+</html>
