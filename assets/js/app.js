@@ -71,6 +71,7 @@
     layers: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>',
     pen: '<path d="m4 20 4-1 11-11-3-3L5 16l-1 4Z"/><path d="m14 6 3 3"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    trophy: '<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>'
   };
@@ -351,6 +352,7 @@
       case 'formulas': page = renderFormulas(); break;
       case 'plan': page = renderPlan(); break;
       case 'courses': page = renderCourses(); break;
+      case 'rank': page = renderRank(); break;
       default: page = renderNotFound();
     }
 
@@ -431,6 +433,7 @@
     html += `</div><div class="sidebar-label">线性代数</div><div class="nav">`;
     html += CHAPTERS.filter(c => c.subject === 'linear').map(chapterLink).join('');
     html += `</div><div class="sidebar-label">训练工具</div><div class="nav">`;
+    html += top('rank', '#/rank', 'trophy', '学习榜单');
     html += top('courses', '#/courses', 'play', '学习课程');
     html += top('exam', '#/exam', 'exam', '综合测试');
     html += top('mistakes', '#/mistakes', 'mistakes', '错题本',
@@ -462,6 +465,7 @@
     else if (r.name === 'formulas') parts.push({ label: '公式手册' });
     else if (r.name === 'plan') parts.push({ label: '复习计划' });
     else if (r.name === 'courses') parts.push({ label: '学习课程' });
+    else if (r.name === 'rank') parts.push({ label: '学习榜单' });
     return parts.map((p, i) => {
       if (i === parts.length - 1) return `<span class="current">${esc(p.label)}</span>`;
       return `<a href="${p.href || '#/home'}">${esc(p.label)}</a><span class="sep">/</span>`;
@@ -2317,6 +2321,44 @@
     });
     $('#scrim')?.addEventListener('click', closeSidebar);
     renderRoute();
+  }
+
+  function renderRank() {
+    return `<div class="rank-page">
+      <header class="rank-hero">
+        <div class="rank-hero-copy">
+          <div class="hero-kicker">CLASS LEAGUE · 学习榜单</div>
+          <h1>把坚持，<em>排成一条线</em>。</h1>
+          <p>按掌握知识点、答题、综合测试和活跃天数计算 XP。只展示学习统计，不公开你的答题内容。</p>
+        </div>
+        <div class="rank-hero-badge">
+          ${icon('trophy')}
+          <b>班级联赛</b>
+          <span>每周刷新 · 结课不结算</span>
+        </div>
+      </header>
+      <div class="rank-tabs" id="rankTabs" role="tablist" aria-label="榜单周期">
+        <button type="button" class="active" data-rank-period="week" role="tab" aria-selected="true">本周</button>
+        <button type="button" data-rank-period="all" role="tab" aria-selected="false">总榜</button>
+      </div>
+      <section class="rank-board" id="rankBoard" aria-live="polite">
+        <div class="rank-empty">正在加载榜单…</div>
+      </section>
+      <section class="rank-rule">
+        <div class="rank-rule-head">
+          <div class="sidebar-label">XP RULES</div>
+          <h2>分数怎么来的</h2>
+        </div>
+        <div class="rank-rule-grid">
+          <div><span>掌握一个知识点</span><b>+8 XP</b></div>
+          <div><span>答对一道题</span><b>+10 XP</b></div>
+          <div><span>完成一次章节测试</span><b>+2 XP / 次</b></div>
+          <div><span>完成一次综合测试</span><b>+20 XP</b></div>
+          <div><span>活跃一天</span><b>+3 XP</b></div>
+        </div>
+        <p>榜单只用于互相激励，不作为课程成绩。进度仍然以你自己的学习记录为准。</p>
+      </section>
+    </div>`;
   }
 
   function renderNotFound() {

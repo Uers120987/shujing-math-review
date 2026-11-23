@@ -1263,6 +1263,109 @@ img, svg { display: block; }
 .task-side a { color: var(--accent); font-size: 10px; white-space: nowrap; }
 .task-side a:hover { text-decoration: underline; }
 
+/* ---------- Leaderboard ---------- */
+.rank-page { display: flex; flex-direction: column; gap: 18px; }
+.rank-hero {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 28px;
+  padding: 30px 32px;
+  border: 1px solid var(--line); border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 92% 10%, var(--accent-soft) 0%, transparent 55%),
+    linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+.rank-hero::after {
+  content: "∑"; position: absolute; right: 26px; bottom: -46px;
+  font-family: var(--font-display); font-size: 190px; line-height: 1;
+  color: var(--line-soft); pointer-events: none;
+}
+.rank-hero-copy { position: relative; z-index: 1; max-width: 660px; }
+.rank-hero h1 { font-family: var(--font-display); font-size: clamp(30px, 4vw, 46px); line-height: 1.25; font-weight: 600; margin-top: 8px; }
+.rank-hero h1 em { color: var(--accent); font-style: normal; }
+.rank-hero p { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 10px; max-width: 580px; }
+.rank-hero-badge {
+  position: relative; z-index: 1; flex: none;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  width: 122px; padding: 17px 12px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(4px);
+}
+.rank-hero-badge svg { width: 26px; height: 26px; color: var(--gold); }
+.rank-hero-badge b { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin-top: 4px; }
+.rank-hero-badge span { color: var(--faint); font-size: 9px; white-space: nowrap; }
+.rank-tabs { display: flex; gap: 5px; align-self: flex-start; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.rank-tabs button { height: 32px; padding: 0 18px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 11px; }
+.rank-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
+.rank-board { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; }
+.rank-loading, .rank-empty { padding: 48px 24px; text-align: center; color: var(--muted); font-size: 12px; }
+.rank-gate { padding: 46px 24px; text-align: center; }
+.rank-gate .rank-gate-icon { width: 48px; height: 48px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 14px; background: var(--accent-soft); color: var(--accent); }
+.rank-gate .rank-gate-icon svg { width: 24px; height: 24px; }
+.rank-gate h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.rank-gate p { color: var(--muted); font-size: 11.5px; margin: 6px auto 16px; max-width: 360px; line-height: 1.7; }
+.rank-podium { display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: end; gap: 10px; padding: 26px 22px 0; }
+.rank-podium-card { position: relative; text-align: center; padding: 18px 12px 16px; border: 1px solid var(--line-soft); border-radius: 13px 13px 0 0; background: var(--surface-2); }
+.rank-podium-card.first { padding-top: 26px; border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(180deg, var(--gold-soft), var(--surface)); }
+.rank-podium-card.second { margin-bottom: 0; }
+.rank-podium-card.third { margin-bottom: -4px; }
+.rank-medal { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--faint); line-height: 1; }
+.rank-podium-card.first .rank-medal { color: var(--gold); }
+.rank-avatar { width: 38px; height: 38px; margin: 8px auto 6px; display: grid; place-items: center; border-radius: 11px; background: var(--surface); border: 1px solid var(--line); font-family: var(--font-display); font-size: 16px; color: var(--ink); }
+.rank-podium-card.first .rank-avatar { width: 46px; height: 46px; border-color: var(--gold); color: var(--accent); background: var(--surface); }
+.rank-podium-name { font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-podium-xp { color: var(--accent); font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-top: 2px; }
+.rank-podium-xp small { font-family: var(--font-body); color: var(--faint); font-size: 8px; margin-left: 2px; }
+.rank-list { padding: 6px 0 0; }
+.rank-list-head { display: grid; grid-template-columns: 42px 1fr 100px 100px 80px; gap: 8px; padding: 9px 22px; border-top: 1px solid var(--line-soft); color: var(--faint); font-size: 8.5px; letter-spacing: .08em; text-transform: uppercase; }
+.rank-row { display: grid; grid-template-columns: 42px 1fr 100px 100px 80px; gap: 8px; align-items: center; padding: 10px 22px; border-top: 1px solid var(--line-soft); font-size: 11px; }
+.rank-row.me { background: var(--accent-soft); border-left: 2px solid var(--accent); padding-left: 20px; }
+.rank-row-rank { color: var(--faint); font-family: var(--font-display); font-size: 13px; }
+.rank-row.me .rank-row-rank { color: var(--accent); font-weight: 700; }
+.rank-row-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rank-row-name b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-row-name span { color: var(--faint); font-size: 9px; white-space: nowrap; }
+.rank-row-points { color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.rank-row-points small { color: var(--faint); font-family: var(--font-body); font-size: 8px; margin-left: 2px; }
+.rank-row-meta { color: var(--muted); font-size: 9.5px; white-space: nowrap; }
+.rank-row-me-tag { display: inline-block; padding: 1px 5px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 7.5px; vertical-align: 1px; margin-left: 5px; }
+.rank-me-card { margin: 0 22px 18px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rank-me-card p { color: var(--muted); font-size: 10.5px; }
+.rank-me-card b { font-family: var(--font-display); font-size: 20px; color: var(--accent); }
+.rank-rule { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); padding: 18px 22px; }
+.rank-rule-head { display: flex; align-items: baseline; gap: 10px; }
+.rank-rule-head h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; }
+.rank-rule-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.rank-rule-grid div { padding: 9px 10px; border: 1px solid var(--line-soft); border-radius: 8px; background: var(--surface); }
+.rank-rule-grid span { display: block; color: var(--muted); font-size: 9px; line-height: 1.4; }
+.rank-rule-grid b { display: block; margin-top: 3px; font-family: var(--font-display); font-size: 14px; color: var(--accent); font-weight: 600; }
+.rank-rule > p { color: var(--faint); font-size: 9px; line-height: 1.6; margin-top: 10px; }
+
+@media (max-width: 900px) {
+  .rank-rule-grid { grid-template-columns: repeat(2, 1fr); }
+  .rank-list-head, .rank-row { grid-template-columns: 34px 1fr 86px 74px; }
+  .rank-list-head span:nth-child(4), .rank-row-meta:nth-child(4) { display: none; }
+}
+@media (max-width: 720px) {
+  .rank-hero { padding: 22px 20px; align-items: flex-start; }
+  .rank-hero-badge { display: none; }
+  .rank-hero h1 { font-size: 30px; }
+  .rank-podium { padding: 18px 12px 0; gap: 6px; }
+  .rank-podium-card { padding: 13px 7px 12px; }
+  .rank-podium-card.first { padding-top: 19px; }
+  .rank-avatar { width: 31px; height: 31px; font-size: 13px; }
+  .rank-podium-card.first .rank-avatar { width: 37px; height: 37px; }
+  .rank-podium-name { font-size: 10px; }
+  .rank-podium-xp { font-size: 15px; }
+  .rank-list-head, .rank-row { grid-template-columns: 30px 1fr 72px; padding-left: 14px; padding-right: 14px; }
+  .rank-list-head span:nth-child(3), .rank-row-meta { display: none; }
+  .rank-row.me { padding-left: 12px; }
+  .rank-me-card { margin: 0 14px 14px; }
+  .rank-rule { padding: 15px 16px; }
+  .rank-rule-head { display: block; }
+  .rank-rule-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ---------- Account / auth ---------- */
 .auth-trigger {
   display: flex; align-items: center; gap: 7px;

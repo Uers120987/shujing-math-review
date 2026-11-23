@@ -23,6 +23,9 @@
   let lastPull = 0;
   let modal = null;
   let modalTab = 'login';
+  let rankPeriod = 'week';
+  let rankLoading = false;
+  let lastRankLoad = 0;
 
   const $ = sel => document.querySelector(sel);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -185,6 +188,7 @@
     setStatus('local');
     updateUI();
     renderAccount();
+    if (rankVisible()) renderRankGate();
     toast('已退出登录，本地进度保留');
   }
 
@@ -334,6 +338,101 @@
     }, 1200);
   }
 
+  /* ---------------- leaderboard ---------------- */
+  function rankVisible() {
+    return !!$('#rankBoard') && location.hash.startsWith('#/rank');
+  }
+
+  function displayName(row) {
+    return row.nickname || row.username || '同学';
+  }
+
+  function renderRankGate() {
+    const board = $('#rankBoard');
+    if (!board) return;
+    board.innerHTML = `
+      <div class="rank-gate">
+        <div class="rank-gate-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></div>
+        <h2>登录后加入班级联赛</h2>
+        <p>榜单只展示昵称、XP 和学习统计。登录后就能看到自己排在第几名。</p>
+        <button type="button" class="btn btn-primary" id="rankLogin">登录 / 注册</button>
+      </div>`;
+  }
+
+  function renderLeaderboard(rows) {
+    const board = $('#rankBoard');
+    if (!board) return;
+    if (!rows.length) {
+      board.innerHTML = `<div class="rank-empty">还没有人上榜。完成一个知识点或一次测试，就会出现在这里。</div>`;
+      return;
+    }
+
+    const byRank = n => rows.find(r => Number(r.rank) === n);
+    const podiumOrder = [byRank(2), byRank(1), byRank(3)].filter(Boolean);
+    const podium = podiumOrder.map(row => {
+      const rank = Number(row.rank);
+      const cls = rank === 1 ? 'first' : rank === 2 ? 'second' : 'third';
+      const medal = rank === 1 ? '01' : rank === 2 ? '02' : '03';
+      return `<div class="rank-podium-card ${cls}">
+        <div class="rank-medal">${medal}</div>
+        <div class="rank-avatar">${esc(String(displayName(row)).slice(0, 1).toUpperCase())}</div>
+        <div class="rank-podium-name">${esc(displayName(row))}</div>
+        <div class="rank-podium-xp">${Number(row.points) || 0}<small>XP</small></div>
+      </div>`;
+    }).join('');
+
+    const rest = rows.filter(r => Number(r.rank) > 3);
+    const list = rest.length ? `
+      <div class="rank-list">
+        <div class="rank-list-head"><span>排名</span><span>同学</span><span>XP</span><span>掌握 / 答题</span><span>正确率</span></div>
+        ${rest.map(r => `<div class="rank-row${r.is_me ? ' me' : ''}">
+          <div class="rank-row-rank">${r.rank}</div>
+          <div class="rank-row-name"><b>${esc(displayName(r))}</b>${r.is_me ? '<span class="rank-row-me-tag">我</span>' : ''}<span>@${esc(r.username || '')}</span></div>
+          <div class="rank-row-points">${Number(r.points) || 0}<small>XP</small></div>
+          <div class="rank-row-meta">${Number(r.read_count) || 0} 个知识点 · ${Number(r.answered) || 0} 题</div>
+          <div class="rank-row-meta">${Number(r.accuracy) || 0}% 正确</div>
+        </div>`).join('')}
+      </div>` : '';
+
+    board.innerHTML = `<div class="rank-podium">${podium}</div>${list}`;
+  }
+
+  async function loadLeaderboard(period = rankPeriod) {
+    if (!rankVisible()) return;
+    rankPeriod = period === 'all' ? 'all' : 'week';
+    document.querySelectorAll('#rankTabs [data-rank-period]').forEach(btn => {
+      const active = btn.dataset.rankPeriod === rankPeriod;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', String(active));
+    });
+
+    if (!session) { renderRankGate(); return; }
+    if (rankLoading) return;
+    rankLoading = true;
+    const board = $('#rankBoard');
+    if (board) board.innerHTML = '<div class="rank-loading">正在计算班级 XP…</div>';
+
+    try {
+      await ensureFresh();
+      const res = await authFetch('/rest/v1/rpc/get_leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_period: rankPeriod })
+      });
+      const data = await readJson(res);
+      if (!res.ok) throw new Error(authError(data, res.status));
+      lastRankLoad = Date.now();
+      renderLeaderboard(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn('榜单加载失败', e);
+      if (board) {
+        board.innerHTML = `<div class="rank-empty">榜单暂时加载失败：${esc(e.message || '网络问题')}<br><button type="button" class="btn btn-soft btn-sm" id="rankRetry" style="margin-top:12px">重试</button></div>`;
+      }
+    } finally {
+      rankLoading = false;
+    }
+  }
+
   /* ---------------- UI ---------------- */
   function setStatus(next) {
     status = next;
@@ -347,6 +446,9 @@
     }
     const statusEl = $('#authSyncStatus');
     if (statusEl) statusEl.textContent = statusText();
+    if (next === 'synced' && rankVisible() && Date.now() - lastRankLoad > 1200) {
+      setTimeout(() => loadLeaderboard(rankPeriod), 250);
+    }
   }
 
   function statusText() {
@@ -422,6 +524,11 @@
     else renderAuth(modalTab);
   }
 
+  function openLogin() {
+    modalTab = 'login';
+    openModal();
+  }
+
   function closeModal() {
     if (!modal) return;
     modal.hidden = true;
@@ -469,6 +576,7 @@
         else await signUp(username, password, $('#authNickname').value.trim());
         closeModal();
         updateUI();
+        if (rankVisible()) loadLeaderboard(rankPeriod);
         toast(tab === 'login' ? '登录成功，进度已同步' : '注册成功，已开始同步');
       } catch (err) {
         error.textContent = err?.message || '操作失败，请稍后再试';
@@ -537,10 +645,37 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && session && Date.now() - lastPull > 60000) {
         syncNow();
+        if (rankVisible()) loadLeaderboard(rankPeriod);
       }
     });
+
+    document.addEventListener('click', e => {
+      const tab = e.target.closest('[data-rank-period]');
+      if (tab) {
+        loadLeaderboard(tab.dataset.rankPeriod);
+        return;
+      }
+      if (e.target.closest('#rankLogin')) openLogin();
+      if (e.target.closest('#rankRetry')) loadLeaderboard(rankPeriod);
+    });
+
+    window.addEventListener('hashchange', () => {
+      if (rankVisible()) {
+        lastRankLoad = 0;
+        loadLeaderboard(rankPeriod);
+      }
+    });
+
+    if (rankVisible()) loadLeaderboard(rankPeriod);
   }
 
-  window.ShujingAuth = { queuePush, syncNow, signOut, getSession: () => session };
+  window.ShujingAuth = {
+    queuePush,
+    syncNow,
+    signOut,
+    openLogin,
+    loadLeaderboard,
+    getSession: () => session
+  };
   init();
 })();
