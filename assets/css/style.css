@@ -865,7 +865,8 @@ img, svg { display: block; }
 .option.wrong { border-color: var(--red); background: var(--red-soft); color: var(--ink); }
 .option.wrong .letter { background: var(--red); color: #fff; border-color: var(--red); }
 .option[disabled] { cursor: default; }
-.option .option-tex { overflow-x: auto; }
+.option .option-tex { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.option .option-tex::-webkit-scrollbar { width: 0; height: 0; display: none; }
 .option .option-tex mjx-container { margin: 0 !important; }
 
 .fill-wrap { margin-top: 22px; }
@@ -918,8 +919,13 @@ img, svg { display: block; }
 /* 隐藏滚动条轨道，保留滚动功能 */
 html { scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
-.sidebar-scroll, .auth-panel, .search-panel, .rank-board, .modal-panel { scrollbar-width: none; }
-.sidebar-scroll::-webkit-scrollbar, .auth-panel::-webkit-scrollbar, .search-panel::-webkit-scrollbar, .rank-board::-webkit-scrollbar { display: none; }
+.sidebar-scroll, .auth-panel, .search-panel, .rank-board, .modal-panel,
+.formula-tex, .option .option-tex, .q-stem, .feedback-explain { scrollbar-width: none; }
+.sidebar-scroll::-webkit-scrollbar, .auth-panel::-webkit-scrollbar, .search-panel::-webkit-scrollbar,
+.rank-board::-webkit-scrollbar, .formula-tex::-webkit-scrollbar, .option .option-tex::-webkit-scrollbar,
+.q-stem::-webkit-scrollbar, .feedback-explain::-webkit-scrollbar { width: 0; height: 0; display: none; }
+mjx-container[display="true"] { scrollbar-width: none; }
+mjx-container[display="true"]::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 .q-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line-soft); }
 .q-actions .left { color: var(--faint); font-size: 10.5px; }
