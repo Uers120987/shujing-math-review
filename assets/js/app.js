@@ -1,12 +1,20 @@
 /* ==========================================================================
-   数径 · 应用逻辑
+   大一电信学习网 · 应用逻辑
    路由 / 状态 / 渲染 / 刷题 / 考试 / 错题 / 公式 / 计划 / 搜索
    ========================================================================== */
 (() => {
   'use strict';
 
-  const CHAPTERS = [...window.CALC_CHAPTERS, ...window.LINEAR_CHAPTERS];
-  const QUESTIONS = [...window.QUESTION_BANK, ...(window.QUESTION_BANK_EXTRA || [])];
+  const CHAPTERS = [
+    ...window.CALC_CHAPTERS,
+    ...window.LINEAR_CHAPTERS,
+    ...(window.DRAWING_CHAPTERS || [])
+  ];
+  const QUESTIONS = [
+    ...window.QUESTION_BANK,
+    ...(window.QUESTION_BANK_EXTRA || []),
+    ...(window.QUESTION_BANK_DRAWING || [])
+  ];
   const PLAN = window.STUDY_PLAN;
   const TIPS = window.STUDY_TIPS;
   const META = window.SITE_META;
@@ -19,7 +27,9 @@
   const kpById = new Map();
   CHAPTERS.forEach(c => c.kps.forEach(kp => kpById.set(kp.id, { kp, chapter: c })));
 
-  const SUBJECT_NAME = { calc: '高等数学', linear: '线性代数' };
+  const SUBJECTS = ['calc', 'linear', 'drawing'];
+  const SUBJECT_NAME = { calc: '高等数学', linear: '线性代数', drawing: '机械制图' };
+  const SUBJECT_SHORT = { calc: '高数', linear: '线代', drawing: '制图' };
   const STORE_KEY = 'shujing.math.review.v1';
   const TOTAL_KPS = CHAPTERS.reduce((n, c) => n + c.kps.length, 0);
   const TOTAL_Q = QUESTIONS.length;
@@ -125,6 +135,10 @@
 
   function chipClass(level) {
     return { '核心': 'accent', '强化': 'gold', '易错': 'red', '基础': '' }[level] || '';
+  }
+
+  function subjectColor(subject) {
+    return subject === 'linear' ? 'teal' : subject === 'drawing' ? 'gold' : '';
   }
   function chapterQuestions(id) { return QUESTIONS.filter(q => q.chapter === id); }
   function chapterTotal(id) { return chapterQuestions(id).length; }
@@ -428,11 +442,14 @@
     };
 
     let html = `<div class="nav">${top('home', '#/home', 'home', '首页')}</div>`;
-    html += `<div class="sidebar-label">高等数学</div><div class="nav">`;
-    html += CHAPTERS.filter(c => c.subject === 'calc').map(chapterLink).join('');
-    html += `</div><div class="sidebar-label">线性代数</div><div class="nav">`;
-    html += CHAPTERS.filter(c => c.subject === 'linear').map(chapterLink).join('');
-    html += `</div><div class="sidebar-label">训练工具</div><div class="nav">`;
+    SUBJECTS.forEach(subject => {
+      const list = CHAPTERS.filter(c => c.subject === subject);
+      if (!list.length) return;
+      html += `<div class="sidebar-label">${SUBJECT_NAME[subject]}</div><div class="nav">`;
+      html += list.map(chapterLink).join('');
+      html += `</div>`;
+    });
+    html += `<div class="sidebar-label">训练工具</div><div class="nav">`;
     html += top('rank', '#/rank', 'trophy', '学习榜单');
     html += top('courses', '#/courses', 'play', '学习课程');
     html += top('exam', '#/exam', 'exam', '综合测试');
@@ -487,8 +504,8 @@
       <header class="hero">
         <div class="hero-main">
           <div class="hero-kicker">2026 · 大一上期末复习</div>
-          <h1>把高数线代，<br>学成一条<em>清晰的路</em>。</h1>
-          <p class="hero-sub">同济《高等数学》第七版上册 ×《线性代数》第六版。${TOTAL_KPS} 个知识点、${TOTAL_Q} 道原创精练，从框架到题型，再到错题清零。</p>
+          <h1>把高数线代制图，<br>学成一条<em>清晰的路</em>。</h1>
+          <p class="hero-sub">同济《高等数学》第七版上册 ×《线性代数》第六版 × 机械制图。${TOTAL_KPS} 个知识点、${TOTAL_Q} 道原创精练，从框架到题型，再到错题清零。</p>
           <div class="hero-actions">
             <a class="btn btn-primary btn-lg" href="${nextHref}">${icon('play')}继续学习 · ${esc(next.kp.title)}</a>
             <a class="btn btn-ghost btn-lg" href="#/exam">${icon('exam')}开始综合测试</a>
@@ -525,7 +542,7 @@
             <div class="quick-top"><div class="quick-icon">${icon('book')}</div><span class="quick-label">01 · 继续</span></div>
             <h3>${esc(next.chapter.title)} · ${esc(next.kp.title)}</h3>
             <p>${esc(next.kp.summary)}</p>
-            <div class="quick-foot"><span class="chip">${esc(next.chapter.subject === 'calc' ? '高数' : '线代')}</span><a class="go" href="${nextHref}">去学习 ${icon('arrowRight')}</a></div>
+            <div class="quick-foot"><span class="chip">${esc(SUBJECT_SHORT[next.chapter.subject] || '')}</span><a class="go" href="${nextHref}">去学习 ${icon('arrowRight')}</a></div>
           </article>
           <article class="quick-card">
             <div class="quick-top"><div class="quick-icon">${icon('target')}</div><span class="quick-label">02 · 补弱</span></div>
@@ -544,29 +561,31 @@
         </div>
       </section>`;
 
-    const subjectBlocks = ['calc', 'linear'].map(subject => {
+    const subjectBlocks = SUBJECTS.map((subject, si) => {
       const list = CHAPTERS.filter(c => c.subject === subject);
+      if (!list.length) return '';
       const pct = subjectPct(subject);
+      const color = subjectColor(subject);
       return `
         <section class="subject-block">
           <div class="subject-head">
             <div class="subject-title">
-              <span class="num">${subject === 'calc' ? '01' : '02'}</span>
+              <span class="num">${pad2(si + 1)}</span>
               <h2>${SUBJECT_NAME[subject]}</h2>
               <span>${list.length} 章 · ${list.reduce((n, c) => n + c.kps.length, 0)} 个知识点</span>
             </div>
-            <div class="subject-progress"><div class="progress ${subject === 'linear' ? 'teal' : ''}"><i style="width:${pct}%"></i></div><b>${pct}%</b></div>
+            <div class="subject-progress"><div class="progress ${color}"><i style="width:${pct}%"></i></div><b>${pct}%</b></div>
           </div>
           <div class="chapter-grid">
             ${list.map(c => {
               const cp = chapterPct(c.id);
-              const tags = c.tags.slice(0, 2).map((t, i) => `<span class="chip ${i === 0 ? (subject === 'calc' ? 'accent' : 'teal') : ''}">${esc(t)}</span>`).join('');
+              const tags = c.tags.slice(0, 2).map((t, i) => `<span class="chip ${i === 0 ? (color || 'accent') : ''}">${esc(t)}</span>`).join('');
               return `<a class="chapter-card" href="#/chapter/${c.id}" data-subject="${subject}">
                 <div class="cc-top"><span class="cc-index">CHAPTER ${pad2(c.order)}</span><div class="cc-tags">${tags}</div></div>
                 <div class="cc-title"><h3>${esc(c.title)}</h3><span class="en">${esc(c.en)}</span></div>
                 <p class="cc-desc">${esc(c.intro)}</p>
                 <div class="cc-bottom">
-                  <div class="progress ${subject === 'linear' ? 'teal' : ''}"><i style="width:${cp}%"></i></div>
+                  <div class="progress ${color}"><i style="width:${cp}%"></i></div>
                   <span class="cc-pct">${cp}%</span>
                   <span class="cc-go">${icon('arrowRight')}</span>
                 </div>
@@ -595,7 +614,7 @@
       <section class="exam-banner">
         <div>
           <h2>准备好，用 45 分钟检验一次</h2>
-          <p>20 道题，覆盖高数 7 章与线代 6 章；交卷后按章节拆解正确率。</p>
+          <p>20 道题，覆盖高数、线代与机械制图；交卷后按章节拆解正确率。</p>
         </div>
         <div class="banner-actions">
           <a class="btn btn-soft" href="#/plan">${icon('plan')}按考试时间校准</a>
@@ -631,11 +650,11 @@
     const idx = CHAPTERS.indexOf(c);
     const prev = CHAPTERS[idx - 1];
     const next = CHAPTERS[idx + 1];
-    const mark = c.subject === 'calc' ? '∫' : 'A';
+    const mark = c.subject === 'calc' ? '∫' : c.subject === 'drawing' ? '图' : 'A';
 
     const metaChips = [
       `<span class="chip accent">${esc(c.weight)}</span>`,
-      `<a class="chip" href="#/courses?chapter=${c.id}">配套课程</a>`,
+      `<a class="chip" href="#/courses?chapter=${c.id}">${c.subject === 'drawing' ? '教材主线' : '配套课程'}</a>`,
       `<span class="chip">${esc(c.bookRef || '')}</span>`,
       `<span class="chip">${icon('clock')} ${esc(c.hours)}</span>`,
       `<span class="chip">${c.kps.length} 个知识点</span>`,
@@ -655,7 +674,7 @@
         <p class="chapter-intro">${esc(c.intro)}</p>
         <div class="chapter-meta">${metaChips}</div>
         <div class="chapter-progress-row">
-          <b>${pct}%</b><div class="progress ${c.subject === 'linear' ? 'teal' : ''}"><i style="width:${pct}%"></i></div>
+          <b>${pct}%</b><div class="progress ${subjectColor(c.subject)}"><i style="width:${pct}%"></i></div>
           <small>已读 ${read}/${c.kps.length} · 测试最佳 ${best}/${qs.length}</small>
           <a class="btn btn-primary btn-sm" href="#/quiz/${c.id}?retry=1">${icon('play')}开始刷题</a>
         </div>
@@ -1110,12 +1129,12 @@
       <section class="exam-intro">
         <div class="hero-kicker">FINAL SIMULATION · 综合测试</div>
         <h1>45 分钟，20 道题，<br>看看这一学期学到了什么。</h1>
-        <p>按章节分层抽题，覆盖高等数学 7 章与线性代数 6 章。交卷后给出总分、章节正确率和逐题解析；未作答的题也会进入错题本。</p>
+        <p>按章节分层抽题，覆盖高等数学、线性代数与机械制图。交卷后给出总分、章节正确率和逐题解析；未作答的题也会进入错题本。</p>
         <div class="exam-facts">
           <span class="exam-fact"><b>20</b> 道题</span>
           <span class="exam-fact"><b>45</b> 分钟</span>
           <span class="exam-fact"><b>100</b> 分制</span>
-          <span class="exam-fact"><b>13</b> 章覆盖</span>
+          <span class="exam-fact"><b>${CHAPTERS.length}</b> 章题库</span>
         </div>
         <button class="btn btn-lg" type="button" data-action="exam-start">${icon('clock')}开始考试</button>
       </section>
@@ -1407,6 +1426,29 @@
         </div>
       </article>`).join('');
 
+    const drawingRows = CHAPTERS.filter(c => c.subject === 'drawing').map(c => {
+      const done = !!state.course[c.id];
+      return `<article class="course-row${done ? ' watched' : ''}" id="course-${c.id}" data-course-row="${c.id}">
+        <span class="course-row-no">${pad2(c.order)}</span>
+        <div class="course-row-main">
+          <div class="course-row-title"><h3><a href="#/chapter/${c.id}">${esc(c.title)}</a></h3><span class="chip gold">${chapterTotal(c.id)} 题</span></div>
+          <p>${esc(c.intro)}</p>
+        </div>
+        <div class="course-range"><b>教材第 ${c.order} 章</b><span>站内主线</span></div>
+        <div class="course-row-actions">
+          <a class="btn btn-ghost btn-sm" href="#/chapter/${c.id}">站内复习</a>
+          <button class="btn ${done ? 'btn-soft' : 'btn-outline'} btn-sm" type="button" data-action="toggle-course" data-id="${c.id}" aria-pressed="${done}">${done ? '已看' : '标记已看'}</button>
+        </div>
+      </article>`;
+    }).join('');
+    const drawingGroup = drawingRows ? `<section class="course-group">
+      <div class="course-group-head">
+        <h2>机械制图 · 教材主线</h2>
+        <span>8 章 · 站内知识卡与题库</span>
+      </div>
+      <div class="course-list">${drawingRows}</div>
+    </section>` : '';
+
     const groups = ['calc', 'linear'].map(subject => {
       const rows = COURSE_MAP.filter(m => chapterById.get(m.chapter)?.subject === subject).map(m => {
         const c = chapterById.get(m.chapter);
@@ -1441,7 +1483,7 @@
         <div class="courses-hero-main">
           <div class="hero-kicker">COURSE MAP · 课程地图</div>
           <h1>网课不是背景音，<br>要变成一条能走完的路线。</h1>
-          <p>已经按同济章节把宋浩老师的 B 站官方课程页码整理好：先看哪几集、什么时候暂停、看完回来做哪一章题，都在下面。</p>
+          <p>已经按同济章节把宋浩老师的 B 站官方课程页码整理好：先看哪几集、什么时候暂停、看完回来做哪一章题，都在下面。机械制图部分按教材主线整理，直接配合站内知识卡与题库使用。</p>
           <div class="course-progress-row">
             <div class="course-progress-copy"><b><span id="courseDone">${watched}</span><span> / ${COURSE_MAP.length}</span></b><small>章视频已看</small></div>
             <div class="progress"><i id="courseBar" style="width:${pct}%"></i></div>
@@ -1449,9 +1491,9 @@
           </div>
         </div>
         <div class="courses-hero-side">
-          <div class="course-hero-stat"><b>2</b><span>门官方课程</span></div>
-          <div class="course-hero-stat"><b>13</b><span>个章节映射</span></div>
-          <div class="course-hero-stat"><b>76</b><span>上册视频页</span></div>
+          <div class="course-hero-stat"><b>2</b><span>门视频课程</span></div>
+          <div class="course-hero-stat"><b>${CHAPTERS.length}</b><span>个章节覆盖</span></div>
+          <div class="course-hero-stat"><b>3</b><span>个学科</span></div>
         </div>
       </header>
 
@@ -1473,6 +1515,7 @@
       </div>
 
       ${groups}
+      ${drawingGroup}
     </div>`;
   }
 
@@ -1528,6 +1571,7 @@
           <button class="filter-chip ${formulaSubject === 'all' ? 'active' : ''}" type="button" data-action="filter-formula" data-subject="all">全部</button>
           <button class="filter-chip ${formulaSubject === 'calc' ? 'active' : ''}" type="button" data-action="filter-formula" data-subject="calc">高数</button>
           <button class="filter-chip ${formulaSubject === 'linear' ? 'active' : ''}" type="button" data-action="filter-formula" data-subject="linear">线代</button>
+          <button class="filter-chip ${formulaSubject === 'drawing' ? 'active' : ''}" type="button" data-action="filter-formula" data-subject="drawing">制图</button>
         </div>
         <button class="btn btn-soft" type="button" data-action="toggle-mask">${icon(formulaMasked ? 'eye' : 'eye')}<span>${formulaMasked ? '显示公式' : '遮盖回忆'}</span></button>
         <button class="btn btn-soft" type="button" data-action="print-formulas">${icon('printer')}打印</button>
@@ -1536,7 +1580,7 @@
       <div class="empty" id="formulaEmpty" hidden style="margin-top:18px">
         <div class="empty-icon">${icon('search')}</div><h3>没有匹配的公式</h3><p>换个关键词，或切换到“全部”。</p>
       </div>
-      <div class="print-only" style="margin-top:24px;color:var(--muted);font-size:10px">${esc(META.edition)} · 数径公式手册</div>
+      <div class="print-only" style="margin-top:24px;color:var(--muted);font-size:10px">${esc(META.edition)} · 大一电信学习网公式手册</div>
     </div>`;
   }
 
@@ -2330,11 +2374,6 @@
           <div class="hero-kicker">CLASS LEAGUE · 学习榜单</div>
           <h1>把坚持，<em>排成一条线</em>。</h1>
           <p>按掌握知识点、答题、综合测试和活跃天数计算 XP。只展示学习统计，不公开你的答题内容。</p>
-        </div>
-        <div class="rank-hero-badge">
-          ${icon('trophy')}
-          <b>班级联赛</b>
-          <span>每周刷新 · 结课不结算</span>
         </div>
       </header>
       <div class="rank-tabs" id="rankTabs" role="tablist" aria-label="榜单周期">

@@ -187,7 +187,7 @@ img, svg { display: block; }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
 }
 .brand-copy { display: flex; flex-direction: column; line-height: 1.25; }
-.brand-copy strong { font-family: var(--font-display); font-size: 22px; letter-spacing: .12em; font-weight: 600; }
+.brand-copy strong { font-family: var(--font-display); font-size: 19px; letter-spacing: .04em; font-weight: 600; white-space: nowrap; }
 .brand-copy small { color: var(--nav-muted); font-size: 9px; letter-spacing: .2em; margin-top: 5px; }
 
 .sidebar-close {
@@ -552,6 +552,7 @@ img, svg { display: block; }
 .chapter-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-lift); }
 .chapter-card:hover::before { opacity: 1; }
 .chapter-card[data-subject="linear"]::before { background: linear-gradient(180deg, var(--teal), transparent); }
+.chapter-card[data-subject="drawing"]::before { background: linear-gradient(180deg, var(--gold), transparent); }
 .cc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .cc-index { font-family: Georgia, serif; font-size: 11px; color: var(--faint); letter-spacing: .12em; }
 .cc-tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
@@ -566,6 +567,7 @@ img, svg { display: block; }
 .cc-go svg { width: 13px; height: 13px; }
 .chapter-card:hover .cc-go { background: var(--accent); color: #fff; transform: translateX(2px); }
 .chapter-card[data-subject="linear"]:hover .cc-go { background: var(--teal); }
+.chapter-card[data-subject="drawing"]:hover .cc-go { background: var(--gold); }
 
 /* ---------- Home lower ---------- */
 .home-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: 16px; margin-top: 42px; }
@@ -632,6 +634,11 @@ img, svg { display: block; }
 .chapter-hero[data-subject="linear"] {
   background:
     radial-gradient(500px 220px at 100% 0%, var(--teal-soft), transparent 70%),
+    var(--surface);
+}
+.chapter-hero[data-subject="drawing"] {
+  background:
+    radial-gradient(500px 220px at 100% 0%, var(--gold-soft), transparent 70%),
     var(--surface);
 }
 .chapter-hero::after {
@@ -1283,17 +1290,6 @@ img, svg { display: block; }
 .rank-hero h1 { font-family: var(--font-display); font-size: clamp(30px, 4vw, 46px); line-height: 1.25; font-weight: 600; margin-top: 8px; }
 .rank-hero h1 em { color: var(--accent); font-style: normal; }
 .rank-hero p { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 10px; max-width: 580px; }
-.rank-hero-badge {
-  position: relative; z-index: 1; flex: none;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  width: 122px; padding: 17px 12px;
-  border: 1px solid var(--line); border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  backdrop-filter: blur(4px);
-}
-.rank-hero-badge svg { width: 26px; height: 26px; color: var(--gold); }
-.rank-hero-badge b { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin-top: 4px; }
-.rank-hero-badge span { color: var(--faint); font-size: 9px; white-space: nowrap; }
 .rank-tabs { display: flex; gap: 5px; align-self: flex-start; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .rank-tabs button { height: 32px; padding: 0 18px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 11px; }
 .rank-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 600; }
@@ -1348,7 +1344,6 @@ img, svg { display: block; }
 }
 @media (max-width: 720px) {
   .rank-hero { padding: 22px 20px; align-items: flex-start; }
-  .rank-hero-badge { display: none; }
   .rank-hero h1 { font-size: 30px; }
   .rank-podium { padding: 18px 12px 0; gap: 6px; }
   .rank-podium-card { padding: 13px 7px 12px; }

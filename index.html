@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="数径：面向大一上学期的高等数学与线性代数复习站。同济教材章节知识地图、原创题库、错题本、公式手册与六周复习计划。">
+  <meta name="description" content="大一电信学习网：高等数学、线性代数与机械制图学习站。章节知识地图、原创题库、错题本、公式手册、学习榜单与复习计划。">
   <meta name="theme-color" content="#12283f">
-  <title>数径 · 高数线代复习站</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312283f'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23e9c58a' font-family='Georgia,serif'%3E%E2%88%91%3C/text%3E%3C/svg%3E">
+  <title>大一电信学习网 · 高数线代机械制图</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312283f'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23e9c58a' font-family='Georgia,serif'%3E%E7%94%B5%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/css/style.css">
   <script>
     window.MathJax = {
@@ -27,6 +27,7 @@
   <script defer src="vendor/tex-svg.js"></script>
   <script defer src="assets/js/data-calc.js"></script>
   <script defer src="assets/js/data-linear.js"></script>
+  <script defer src="assets/js/data-drawing.js"></script>
   <script defer src="assets/js/data-questions.js"></script>
   <script defer src="assets/js/data-questions-extra.js"></script>
   <script defer src="assets/js/data-extra.js"></script>
@@ -39,11 +40,11 @@
 
   <div class="app">
     <aside class="sidebar" id="sidebar" aria-label="主导航">
-      <a class="brand" href="#/home" aria-label="数径首页">
-        <span class="brand-mark" aria-hidden="true">∑</span>
+      <a class="brand" href="#/home" aria-label="大一电信学习网首页">
+        <span class="brand-mark" aria-hidden="true">电</span>
         <span class="brand-copy">
-          <strong>数径</strong>
-          <small>MATH REVIEW · 2026</small>
+          <strong>大一电信学习网</strong>
+          <small>EE STUDY HUB · 2026</small>
         </span>
       </a>
       <button class="sidebar-close" type="button" data-action="close-sidebar" aria-label="关闭菜单">×</button>
@@ -73,7 +74,7 @@
           <a class="icon-btn on-dark" href="#/formulas" aria-label="公式手册" title="公式手册">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14M5 12h9M5 20h6"/><path d="M18 13v7M14.5 16.5h7"/></svg>
           </a>
-          <span class="local-badge" title="所有学习记录只保存在当前浏览器">本地保存</span>
+          <span class="local-badge" title="未登录时保存在当前浏览器，登录后同步">本地优先</span>
         </div>
       </div>
     </aside>
@@ -91,7 +92,7 @@
         <div class="topbar-actions">
           <button class="search-trigger" type="button" data-action="open-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <span>搜索知识点、公式</span>
+            <span>搜索知识点、公式、制图</span>
             <kbd>Ctrl K</kbd>
           </button>
           <div class="streak-pill" title="连续学习天数">
@@ -106,15 +107,15 @@
 
       <main class="view" id="view" tabindex="-1">
         <div class="boot">
-          <div class="boot-mark">∑</div>
-          <p>正在展开你的复习路线…</p>
+          <div class="boot-mark">电</div>
+          <p>正在展开你的学习路线…</p>
         </div>
       </main>
 
       <footer class="site-foot">
-        <span>数径 · 高数 × 线代复习站</span>
-        <span>同济高数七版上册 · 同济线代六版</span>
-        <span>学习记录仅保存在本地浏览器</span>
+        <span>大一电信学习网 · 高数 × 线代 × 机械制图</span>
+        <span>同济高数七版上册 · 同济线代六版 · 机械制图</span>
+        <span>学习记录本地优先 · 登录后同步</span>
       </footer>
     </div>
   </div>
@@ -125,7 +126,7 @@
       <div class="search-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <h2 id="searchTitle" class="sr-only">站内搜索</h2>
-        <input id="searchInput" type="search" placeholder="搜索：洛必达、特征值、分部积分…" autocomplete="off" spellcheck="false">
+        <input id="searchInput" type="search" placeholder="搜索：洛必达、特征值、三视图、剖视图…" autocomplete="off" spellcheck="false">
         <button class="kbd-btn" type="button" data-action="close-search">Esc</button>
       </div>
       <div class="search-results" id="searchResults">
