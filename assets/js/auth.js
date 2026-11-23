@@ -74,7 +74,7 @@
     if (/invalid login credentials/i.test(msg)) return '用户名或密码错误';
     if (/user already registered|already been registered/i.test(msg)) return '这个用户名已经被注册了';
     if (/email not confirmed/i.test(msg)) return '项目仍要求邮箱确认：请管理员关闭 Supabase 的 Confirm email';
-    if (/invalid_invite_code|database error saving new user/i.test(msg)) return '班级邀请码不正确，或注册被数据库拒绝';
+    if (/database error saving new user/i.test(msg)) return '注册被数据库拒绝，请稍后再试';
     if (/password/i.test(msg) && /6|characters/i.test(msg)) return '密码至少需要 6 位';
     if (/rate limit|too many/i.test(msg)) return '尝试太频繁，请稍后再试';
     return msg || `请求失败（HTTP ${httpStatus}）`;
@@ -140,8 +140,6 @@
   async function signUp(username, password, nickname) {
     if (!validateUsername(username)) throw new Error('用户名需为 2–12 位中文、字母、数字、_ 或 -');
     if (String(password).length < 6) throw new Error('密码至少需要 6 位');
-    const invite = String($('#authInvite')?.value || '').trim();
-    if (!invite) throw new Error('请填写班级邀请码');
     const email = usernameToEmail(username);
     const res = await fetch(`${API}/auth/v1/signup`, {
       method: 'POST',
@@ -151,8 +149,7 @@
         password,
         data: {
           username: String(username).trim(),
-          nickname: String(nickname || username).trim(),
-          class_code: invite
+          nickname: String(nickname || username).trim()
         }
       })
     });
@@ -447,7 +444,6 @@
         <label class="auth-field"><span>用户名</span><input id="authUsername" name="username" maxlength="12" required placeholder="2–12 位中文、字母或数字" autocomplete="username"></label>
         ${tab === 'register' ? `<label class="auth-field"><span>昵称（可选）</span><input id="authNickname" name="nickname" maxlength="20" placeholder="同学看到的名字"></label>` : ''}
         <label class="auth-field"><span>密码</span><input id="authPassword" name="password" type="password" minlength="6" required placeholder="至少 6 位" autocomplete="${tab === 'login' ? 'current-password' : 'new-password'}"></label>
-        ${tab === 'register' ? `<label class="auth-field"><span>班级邀请码</span><input id="authInvite" name="invite" required placeholder="向管理员索取"></label>` : ''}
         <div class="auth-error" id="authError" hidden></div>
         <button class="btn btn-primary auth-submit" type="submit">${tab === 'login' ? '登录并同步' : '注册并同步'}</button>
       </form>
