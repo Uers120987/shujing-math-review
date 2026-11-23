@@ -1,0 +1,30 @@
+name: Deploy to CloudBase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Prepare static files
+        run: |
+          mkdir -p site
+          cp index.html site/
+          cp -r assets vendor site/
+      - name: Deploy CloudBase static hosting
+        env:
+          TCB_API_KEY: ${{ secrets.TCB_API_KEY }}
+          TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
+        run: |
+          npx --yes --package @cloudbase/cli tcb login --cloudbase-api-key "$TCB_API_KEY" -e "$TCB_ENV_ID"
+          npx --yes --package @cloudbase/cli tcb hosting deploy site -e "$TCB_ENV_ID" --safe --verify
