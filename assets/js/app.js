@@ -822,13 +822,15 @@
     state.stats.answered += 1;
     if (correct) {
       state.stats.correct += 1;
-      delete state.wrong[q.id];
+      const prev = state.wrong[q.id];
+      if (!prev?.manual) delete state.wrong[q.id];
     } else {
       const prev = state.wrong[q.id];
       state.wrong[q.id] = {
         count: (prev?.count || 0) + 1,
         lastAt: Date.now(),
-        chapter: q.chapter
+        chapter: q.chapter,
+        manual: !!prev?.manual
       };
     }
     markActivity(1);
@@ -839,10 +841,11 @@
       state.stats.answered += 1;
       if (correct) {
         state.stats.correct += 1;
-        delete state.wrong[q.id];
+        const prev = state.wrong[q.id];
+        if (!prev?.manual) delete state.wrong[q.id];
       } else {
         const prev = state.wrong[q.id];
-        state.wrong[q.id] = { count: (prev?.count || 0) + 1, lastAt: Date.now(), chapter: q.chapter };
+        state.wrong[q.id] = { count: (prev?.count || 0) + 1, lastAt: Date.now(), chapter: q.chapter, manual: !!prev?.manual };
       }
     });
     markActivity(items.length);
@@ -947,6 +950,27 @@
       ? `<button class="btn btn-primary" type="button" data-action="quiz-next">${isLast ? '查看结果' : '下一题'} ${icon('arrowRight')}</button>`
       : `<button class="btn btn-primary" id="quizConfirm" type="button" data-action="quiz-confirm" ${s.selected === null || s.selected === '' ? 'disabled' : ''}>确认答案 ${icon('check')}</button>`;
 
+    const inWrong = !!state.wrong[q.id];
+    const side = `<aside class="quiz-side">
+      <div class="quiz-side-card">
+        <div class="quiz-side-kicker">QUICK CAPTURE · 随手记</div>
+        <h3>这道题要留下吗？</h3>
+        <p>蒙对、思路不熟、想二刷的题，也可以手动加入错题本。</p>
+        <button class="quiz-side-add${inWrong ? ' added' : ''}" type="button" data-action="toggle-mistake" data-id="${q.id}">
+          ${icon(inWrong ? 'check' : 'mistakes')} ${inWrong ? '已在错题本 · 移出' : '加入错题本'}
+        </button>
+        <div class="quiz-side-note">${inWrong ? '已加入，之后可在错题本单独重练。' : '不要求答错，答对也可以加入。'}</div>
+      </div>
+      <div class="quiz-side-card quiz-side-meta">
+        <div class="quiz-side-kicker">THIS ROUND</div>
+        <div class="quiz-side-stats">
+          <div><b>${answerCount}</b><span>已答</span></div>
+          <div><b>${s.qs.length}</b><span>本组题</span></div>
+        </div>
+        <div class="quiz-side-hint">${icon('bulb')} 先自己讲一遍思路，再决定要不要加入。</div>
+      </div>
+    </aside>`;
+
     return `<div class="quiz-page">
       <div class="quiz-top">
         <div class="quiz-top-left">
@@ -956,6 +980,7 @@
         <div class="quiz-counter">${s.index + 1}<span> / ${s.qs.length}</span></div>
       </div>
       <div class="quiz-progress" aria-hidden="true">${bars}</div>
+      <div class="quiz-layout">
       <div class="q-card">
         <div class="q-meta">
           <span class="chip accent">${q.type === 'fill' ? '填空题' : q.type === 'judge' ? '判断题' : '单项选择题'}</span>
@@ -969,6 +994,8 @@
           <span class="left">第 ${s.index + 1} 题 · 已完成 ${answerCount}/${s.qs.length}</span>
           <div class="right">${actions}</div>
         </div>
+      </div>
+      ${side}
       </div>
     </div>`;
   }
@@ -1372,14 +1399,14 @@
         <div class="mistake-top">
           <span class="chip">${esc(c ? c.title : '')}</span>
           <span class="chip ${chipClass(q.level)}">${esc(q.level)}</span>
-          <span class="chip red">错 ${meta.count || 1} 次</span>
+          <span class="chip ${meta.manual ? 'gold' : 'red'}">${meta.manual ? '手动加入' : `错 ${meta.count || 1} 次`}</span>
           <span class="when" style="margin-left:auto">${meta.lastAt ? formatDate(meta.lastAt) : ''}</span>
         </div>
         <div class="mistake-stem">${raw(q.stem)}</div>
         <div class="mistake-answer"><b>正确答案：</b>${answerHTML(q)}<br>${raw(q.explain)}</div>
         ${renderCourseHint(q.chapter)}
         <div class="mistake-foot">
-          <span class="when">来自 ${esc(c ? c.title : '')} · 做对后自动移出</span>
+          <span class="when">来自 ${esc(c ? c.title : '')} · ${meta.manual ? '手动加入，需手动移出' : '做对后自动移出'}</span>
           <div class="acts">
             <a class="btn btn-soft btn-sm" href="#/chapter/${q.chapter}">${icon('book')}回看知识点</a>
             <button class="btn btn-ghost btn-sm" type="button" data-action="remove-mistake" data-id="${q.id}">${icon('check')}标记已掌握</button>
@@ -2239,6 +2266,20 @@
         saveState();
         renderRoute({ keepScroll: true });
         toast('已从错题本移出');
+        break;
+      }
+      case 'toggle-mistake': {
+        const q = questionById.get(el.dataset.id);
+        if (!q) break;
+        if (state.wrong[q.id]) {
+          delete state.wrong[q.id];
+          toast('已从错题本移出');
+        } else {
+          state.wrong[q.id] = { count: 0, lastAt: Date.now(), chapter: q.chapter, manual: true };
+          toast('已加入错题本，答对也可以留着');
+        }
+        saveState();
+        renderRoute({ keepScroll: true });
         break;
       }
       case 'filter-formula':
