@@ -940,6 +940,7 @@
       <div class="feedback-head">${icon(response.correct ? 'check' : 'alert')}${response.correct ? '回答正确' : '再看一眼'}</div>
       <div class="feedback-answer">正确答案：${answerHTML(q)}${q.type !== 'fill' ? '' : `　你的答案：${esc(response.value)}`}</div>
       <div class="feedback-explain">${raw(q.explain)}</div>
+      ${!response.correct ? renderCourseHint(q.chapter) : ''}
     </div>` : '';
 
     const actions = answered
@@ -1088,6 +1089,7 @@
           <div><b>你的答案：</b>${userAnswerHTML(q, response?.value)}</div>
           <div style="margin-top:4px"><b>正确答案：</b>${answerHTML(q)}</div>
           <div style="margin-top:4px">${raw(q.explain)}</div>
+          ${!ok ? renderCourseHint(q.chapter) : ''}
         </div>
       </div>
       <button class="ri-toggle" type="button" data-action="toggle-review">解析</button>
@@ -1375,6 +1377,7 @@
         </div>
         <div class="mistake-stem">${raw(q.stem)}</div>
         <div class="mistake-answer"><b>正确答案：</b>${answerHTML(q)}<br>${raw(q.explain)}</div>
+        ${renderCourseHint(q.chapter)}
         <div class="mistake-foot">
           <span class="when">来自 ${esc(c ? c.title : '')} · 做对后自动移出</span>
           <div class="acts">
@@ -1400,10 +1403,45 @@
   }
 
   /* ------------------------------ Courses ------------------------------ */
-  function courseVideoUrl(sourceId, page) {
+  function courseVideoUrl(sourceId, page, t = 0) {
     const source = COURSE_SOURCES[sourceId];
     if (!source) return '#/courses';
-    return `${source.url}?p=${page}`;
+    return `${source.url}?p=${page}${t ? `&t=${t}` : ''}`;
+  }
+
+  function chapterCourseRef(chapterId) {
+    const c = chapterById.get(chapterId);
+    if (!c) return null;
+    if (c.subject === 'drawing') {
+      return {
+        kind: 'chapter',
+        href: `#/chapter/${chapterId}`,
+        title: '机械制图 · 本章知识卡',
+        meta: `机械制图 · 第 ${c.order} 章知识卡`,
+        action: '回看知识卡'
+      };
+    }
+    const map = COURSE_MAP.find(m => m.chapter === chapterId);
+    const source = map && COURSE_SOURCES[map.course];
+    if (!map || !source) return null;
+    const t = (window.COURSE_TIMES || {})[chapterId]?.t || 0;
+    return {
+      kind: 'video',
+      href: courseVideoUrl(map.course, map.start, t),
+      title: `${source.title} · P${map.start}`,
+      meta: `${source.teacher} · ${map.range} · 从 ${formatTime(t)} 开始`,
+      action: '去听课'
+    };
+  }
+
+  function renderCourseHint(chapterId) {
+    const ref = chapterCourseRef(chapterId);
+    if (!ref) return '';
+    return `<a class="course-hint" href="${ref.href}"${ref.kind === 'video' ? ' target="_blank" rel="noopener noreferrer"' : ''}>
+      <span class="course-hint-icon">${icon(ref.kind === 'video' ? 'play' : 'book')}</span>
+      <span class="course-hint-main"><small>${ref.kind === 'video' ? '卡住了？回到这一节' : '卡住了？回看知识卡'}</small><b>${esc(ref.title)}</b><span>${esc(ref.meta)}</span></span>
+      <span class="course-hint-go">${ref.action} ${icon('arrowRight')}</span>
+    </a>`;
   }
 
   function renderCourses() {

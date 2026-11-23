@@ -172,6 +172,9 @@ window.COURSE_STEPS = [
   }
 ];
 
+/* 可选：按实际视频补充精确秒数，例如 'calc-1': { t: 125 }；默认从分集开头进入。 */
+window.COURSE_TIMES = {};
+
 window.SITE_META = {
   name: '大一电信学习网',
   subtitle: '高数 × 线代 × 机械制图',
