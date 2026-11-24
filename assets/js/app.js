@@ -10,11 +10,17 @@
     ...window.LINEAR_CHAPTERS,
     ...(window.DRAWING_CHAPTERS || [])
   ];
+  /* 这些题与章节“典型例题”使用了同一组数据/同一个问题，练习时不再重复出现。 */
+  const EXAMPLE_DUPLICATE_IDS = new Set([
+    'q-c1-6', 'q-c4-5', 'q-c6-1',
+    'q-l1-7', 'q-l2-7', 'q-l5-1',
+    'q-d3-2', 'q-d8-2'
+  ]);
   const QUESTIONS = [
     ...window.QUESTION_BANK,
     ...(window.QUESTION_BANK_EXTRA || []),
     ...(window.QUESTION_BANK_DRAWING || [])
-  ];
+  ].filter(q => !EXAMPLE_DUPLICATE_IDS.has(q.id));
   const PLAN = window.STUDY_PLAN;
   const TIPS = window.STUDY_TIPS;
   const META = window.SITE_META;
@@ -108,6 +114,18 @@
     }
     return a;
   };
+
+  /* 每次打开页面随机打乱选项，同时重映射正确答案，避免大量题目的答案都落在 A。 */
+  function randomizeQuestionOptions() {
+    QUESTIONS.forEach(q => {
+      if (q.type === 'fill' || !Array.isArray(q.options) || q.options.length < 2) return;
+      const order = shuffle(q.options.map((text, original) => ({ text, original })));
+      q.options = order.map(x => x.text);
+      q.answer = order.findIndex(x => x.original === Number(q.answer));
+    });
+  }
+  randomizeQuestionOptions();
+
   const todayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   const startOfDay = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
