@@ -2046,6 +2046,18 @@
     const restLabel = p.rest === 0 ? '不休息' : p.rest === 1 ? '周日休息' : '周末休息';
 
     const statusIcon = status.tone === 'good' ? 'check' : status.tone === 'bad' ? 'alert' : 'clock';
+    const unplaced = [];
+    const unplacedSeen = new Set();
+    p.unscheduled.forEach(c => {
+      if (unplacedSeen.has(c.title)) return;
+      unplacedSeen.add(c.title);
+      unplaced.push({ title: c.title, href: `#/chapter/${c.id}` });
+    });
+    (p.unplacedSessions || []).forEach(title => {
+      if (unplacedSeen.has(title)) return;
+      unplacedSeen.add(title);
+      unplaced.push({ title, href: '' });
+    });
 
     return `<section class="adaptive-plan">
       <div class="adaptive-head">
@@ -2059,6 +2071,15 @@
           <span class="chip ${p.preview ? 'gold' : 'teal'}">${p.preview ? '30 天预览' : `${p.calDays} 天后考试`}</span>
         </div>
       </div>
+
+      <details class="selected-tasks">
+        <summary>查看已选任务（${p.selectedTasks.length}）</summary>
+        <div class="selected-task-list">
+          ${p.selectedTasks.map(t => t.chapter && chapterById.has(t.chapter)
+            ? `<a class="selected-task-chip" href="#/chapter/${t.chapter}">${esc(t.title)}</a>`
+            : `<span class="selected-task-chip">${esc(t.title)}</span>`).join('')}
+        </div>
+      </details>
 
       <div class="schedule-settings">
         <label class="field">
@@ -2080,8 +2101,10 @@
           </select>
           <small>${restLabel}，自动跳过</small>
         </label>
-        <button class="btn btn-primary" type="button" data-action="save-schedule">${icon('refresh')}按这个时间重排</button>
-        ${dateValue ? `<button class="btn btn-ghost" type="button" data-action="reset-schedule">清除日期</button>` : ''}
+        <div class="schedule-actions">
+          <button class="btn btn-primary" type="button" data-action="save-schedule">${icon('refresh')}按这个时间重排</button>
+          ${dateValue ? `<button class="btn btn-ghost" type="button" data-action="reset-schedule">清除日期</button>` : ''}
+        </div>
       </div>
 
       <div class="schedule-kpis">
@@ -2114,7 +2137,7 @@
             <div class="day-tasks">
               ${day.tasks.map(t => `<div class="day-task${t.review ? ' review' : ''}">
                 <span class="task-bullet"></span>
-                <span class="task-copy"><b>${esc(t.title)}</b><em>${t.continued ? '继续 · ' : ''}${esc(t.label)}</em></span>
+                <span class="task-copy"><b>${t.chapterId && chapterById.has(t.chapterId) ? `<a class="day-task-link" href="#/chapter/${t.chapterId}">${esc(t.title)}</a>` : esc(t.title)}</b><em>${t.continued ? '继续 · ' : ''}${esc(t.label)}</em></span>
                 <span class="task-minutes">${t.minutes}<small>min</small></span>
               </div>`).join('')}
             </div>
@@ -2124,9 +2147,12 @@
 
       <div class="schedule-foot">
         <span>${p.preview ? '这是 30 天预览：选择考试日期后，计划会按真实剩余天数重算。' : `已按 ${restLabel} 跳过休息日，考试前一天不安排新任务。`}</span>
-        ${p.unscheduled.length ? `<span class="schedule-warning">时间不足，暂未排入：${p.unscheduled.map(c => c.title).join('、')}</span>` : ''}
-        ${p.unplacedSessions?.length ? `<span class="schedule-warning">这些任务还没排进学习日：${p.unplacedSessions.join('、')}</span>` : ''}
       </div>
+      ${unplaced.length ? `<div class="schedule-warning-card">
+        <div class="schedule-warning-head">${icon('alert')}<div><b>有 ${unplaced.length} 个任务没排进学习日</b><span>这些任务已经在上面勾选，但按当前时间放不下。</span></div></div>
+        <div class="schedule-warning-list">${unplaced.map(x => x.href ? `<a href="${x.href}">${esc(x.title)}</a>` : `<span>${esc(x.title)}</span>`).join('')}</div>
+        <p>可以少勾几个任务、提高每天分钟数，或把考试日期往后调；调整后点“按这个时间重排”。</p>
+      </div>` : ''}
     </section>`;
   }
 
