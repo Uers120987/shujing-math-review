@@ -22,6 +22,7 @@
     ...(window.QUESTION_BANK_EXPAND || []),
     ...(window.QUESTION_BANK_DRAWING || [])
   ].filter(q => !EXAMPLE_DUPLICATE_IDS.has(q.id));
+  const PRACTICE_QUESTIONS = window.PRACTICE_QUESTIONS || [];
   const PLAN = window.STUDY_PLAN;
   const TIPS = window.STUDY_TIPS;
   const META = window.SITE_META;
@@ -30,7 +31,7 @@
   const COURSE_STEPS = window.COURSE_STEPS || [];
 
   const chapterById = new Map(CHAPTERS.map(c => [c.id, c]));
-  const questionById = new Map(QUESTIONS.map(q => [q.id, q]));
+  const questionById = new Map([...QUESTIONS, ...PRACTICE_QUESTIONS].map(q => [q.id, q]));
   const kpById = new Map();
   CHAPTERS.forEach(c => c.kps.forEach(kp => kpById.set(kp.id, { kp, chapter: c })));
 
@@ -40,6 +41,8 @@
   const STORE_KEY = 'shujing.math.review.v1';
   const TOTAL_KPS = CHAPTERS.reduce((n, c) => n + c.kps.length, 0);
   const TOTAL_Q = QUESTIONS.length;
+  const TOTAL_PRACTICE = PRACTICE_QUESTIONS.length;
+  const practiceFilter = { subject: 'all', chapter: 'all', tag: 'all' };
 
   const FORMULAS = [];
   CHAPTERS.forEach(c => c.kps.forEach(kp => kp.formulas.forEach((f, i) => {
@@ -118,7 +121,7 @@
 
   /* 每次打开页面随机打乱选项，同时重映射正确答案，避免大量题目的答案都落在 A。 */
   function randomizeQuestionOptions() {
-    QUESTIONS.forEach(q => {
+    [...QUESTIONS, ...PRACTICE_QUESTIONS].forEach(q => {
       if (q.type === 'fill' || !Array.isArray(q.options) || q.options.length < 2) return;
       const order = shuffle(q.options.map((text, original) => ({ text, original })));
       q.options = order.map(x => x.text);
@@ -386,6 +389,7 @@
       case 'plan': page = renderPlan(); break;
       case 'courses': page = renderCourses(); break;
       case 'rank': page = renderRank(); break;
+      case 'practice': page = renderPractice(); break;
       default: page = renderNotFound();
     }
 
@@ -470,6 +474,8 @@
     });
     html += `<div class="sidebar-label">训练工具</div><div class="nav">`;
     html += top('rank', '#/rank', 'trophy', '学习榜单');
+    html += top('practice', '#/practice', 'pen', '课后习题',
+      `<span class="nav-count">${TOTAL_PRACTICE}</span>`);
     html += top('courses', '#/courses', 'play', '学习课程');
     html += top('exam', '#/exam', 'exam', '综合测试');
     html += top('mistakes', '#/mistakes', 'mistakes', '错题本',
@@ -509,6 +515,7 @@
     else if (r.name === 'plan') parts.push({ label: '复习计划' });
     else if (r.name === 'courses') parts.push({ label: '学习课程' });
     else if (r.name === 'rank') parts.push({ label: '学习榜单' });
+    else if (r.name === 'practice') parts.push({ label: '课后习题' });
     return parts.map((p, i) => {
       if (i === parts.length - 1) return `<span class="current">${esc(p.label)}</span>`;
       return `<a href="${p.href || '#/home'}">${esc(p.label)}</a><span class="sep">/</span>`;
@@ -910,6 +917,10 @@
   }
 
   function renderQuiz(param) {
+    if (param === 'practice') {
+      if (!quizSession?.practice) return renderPractice();
+      return quizSession.finished ? renderQuizResult(quizSession) : renderQuizQuestion(quizSession);
+    }
     if (currentRoute.query.get('retry') === '1' && quizSession?.param === param && quizSession.finished) {
       quizSession = createQuizSession(param, true);
     }
@@ -925,6 +936,7 @@
   }
 
   function quizBackLink(s) {
+    if (s.param === 'practice') return '#/practice';
     return s.param === 'mistakes' ? '#/mistakes' : `#/chapter/${s.param}`;
   }
 
@@ -1066,7 +1078,7 @@
     s.finished = true;
     s.finishedAt = Date.now();
     s.correct = correct;
-    if (s.param !== 'mistakes') {
+    if (s.param !== 'mistakes' && !s.practice) {
       const prev = state.quiz[s.param] || { best: 0, attempts: 0 };
       state.quiz[s.param] = {
         best: Math.max(prev.best || 0, correct),
@@ -1083,7 +1095,9 @@
       currentRoute.query = new URLSearchParams();
     }
     renderRoute({ keepScroll: false });
-    toast(correct === total ? '全对，这一章可以放心了' : '已记录成绩，错题自动进入错题本');
+    toast(s.practice
+      ? (correct === total ? '课后习题全对，继续保持' : '课后练习完成，错题已进入错题本')
+      : (correct === total ? '全对，这一章可以放心了' : '已记录成绩，错题自动进入错题本'));
   }
 
   function quizResultTitle(score) {
@@ -1102,10 +1116,10 @@
     const review = s.qs.map(q => renderReviewItem(q, s.responses[q.id])).join('');
     return `<div class="result">
       <div class="result-hero">
-        <div class="result-kicker">${s.param === 'mistakes' ? '错题重练 · 完成' : 'CHAPTER TEST · 完成'}</div>
+        <div class="result-kicker">${s.practice ? 'AFTER-CLASS · 课后习题' : s.param === 'mistakes' ? '错题重练 · 完成' : 'CHAPTER TEST · 完成'}</div>
         <div class="result-score">${score}<small>分</small></div>
         <div class="result-title">${quizResultTitle(score)}</div>
-        <div class="result-sub">答对 ${correct} / ${total} 题 · 用时 ${formatTime(used)} · ${esc(c ? c.title : '错题本')}</div>
+        <div class="result-sub">答对 ${correct} / ${total} 题 · 用时 ${formatTime(used)} · ${esc(s.practice ? '课后习题' : c ? c.title : '错题本')}</div>
         <div class="result-stats">
           <div class="result-stat"><b>${correct}</b><span>答对</span></div>
           <div class="result-stat"><b>${total - correct}</b><span>答错</span></div>
@@ -1113,9 +1127,11 @@
         </div>
         <div class="result-actions">
           <button class="btn btn-primary" type="button" data-action="quiz-retry">${icon('refresh')}再练一次</button>
-          ${s.param === 'mistakes'
-            ? `<a class="btn btn-soft" href="#/mistakes">${icon('mistakes')}回到错题本</a>`
-            : `<a class="btn btn-soft" href="#/chapter/${s.param}">${icon('book')}回看知识点</a>`}
+          ${s.practice
+            ? `<a class="btn btn-soft" href="#/practice">${icon('pen')}回到课后习题</a>`
+            : s.param === 'mistakes'
+              ? `<a class="btn btn-soft" href="#/mistakes">${icon('mistakes')}回到错题本</a>`
+              : `<a class="btn btn-soft" href="#/chapter/${s.param}">${icon('book')}回看知识点</a>`}
           <a class="btn btn-ghost" href="#/home">${icon('home')}学习总览</a>
         </div>
       </div>
@@ -2291,6 +2307,10 @@
       case 'quiz-retry': {
         const param = quizSession?.param;
         if (!param) return;
+        if (quizSession?.practice) {
+          startPractice();
+          break;
+        }
         if (param === 'mistakes' && !wrongList().length) {
           toast('错题本已经清空');
           navigate('#/mistakes');
@@ -2300,6 +2320,18 @@
         renderRoute({ keepScroll: false });
         break;
       }
+      case 'practice-filter': {
+        const key = el.dataset.key;
+        const value = el.dataset.value;
+        if (!key || !(key in practiceFilter)) break;
+        practiceFilter[key] = value;
+        if (key === 'subject') practiceFilter.chapter = 'all';
+        renderRoute({ keepScroll: true });
+        break;
+      }
+      case 'practice-start':
+        startPractice();
+        break;
       case 'exam-start':
       case 'exam-retry':
         beginExam(el.dataset.subject || examSession?.subject);
@@ -2511,6 +2543,12 @@
     window.addEventListener('hashchange', () => renderRoute());
     document.addEventListener('click', onClick);
     document.addEventListener('input', onInput);
+    document.addEventListener('change', e => {
+      if (e.target?.id === 'practiceChapter') {
+        practiceFilter.chapter = e.target.value;
+        renderRoute({ keepScroll: true });
+      }
+    });
     document.addEventListener('keydown', onKey);
     $('#searchResults')?.addEventListener('click', e => {
       if (e.target.closest('.sr-item')) closeSearch();
@@ -2550,6 +2588,83 @@
         <p>榜单只用于互相激励，不作为课程成绩。进度仍然以你自己的学习记录为准。</p>
       </section>
     </div>`;
+  }
+
+  function practicePool() {
+    return PRACTICE_QUESTIONS.filter(q => {
+      if (practiceFilter.subject !== 'all' && q.subject !== practiceFilter.subject) return false;
+      if (practiceFilter.chapter !== 'all' && q.chapter !== practiceFilter.chapter) return false;
+      if (practiceFilter.tag !== 'all' && q.tag !== practiceFilter.tag) return false;
+      return true;
+    });
+  }
+
+  function renderPracticeChapterOptions() {
+    const list = CHAPTERS.filter(c => c.subject !== 'drawing')
+      .filter(c => practiceFilter.subject === 'all' || c.subject === practiceFilter.subject);
+    return `<option value="all">全部章节</option>` + list.map(c =>
+      `<option value="${c.id}"${practiceFilter.chapter === c.id ? ' selected' : ''}>${esc(c.title)}</option>`
+    ).join('');
+  }
+
+  function renderPractice() {
+    const pool = practicePool();
+    const preview = shuffle(pool).slice(0, 9);
+    const subjects = [['all', '全部'], ['calc', '高数'], ['linear', '线代']];
+    const tags = [['all', '全部'], ['易错', '易错'], ['易混', '易混']];
+    const kpTitle = id => kpById.get(id)?.kp.title || '知识点';
+    return `<div class="practice-page">
+      <header class="practice-hero">
+        <div class="hero-kicker">AFTER-CLASS · 课后习题</div>
+        <h1>易错易混，<em>单独练。</em></h1>
+        <p>高数与线代的参数变式题库，共 ${TOTAL_PRACTICE} 道。只用于课后加练，不进入章节测试和综合测试。</p>
+        <div class="practice-stats">
+          <div><b>${PRACTICE_QUESTIONS.filter(q => q.subject === 'calc').length}</b><span>高数</span></div>
+          <div><b>${PRACTICE_QUESTIONS.filter(q => q.subject === 'linear').length}</b><span>线代</span></div>
+          <div><b>${TOTAL_PRACTICE}</b><span>易错易混</span></div>
+        </div>
+      </header>
+      <section class="practice-filters">
+        <div class="practice-filter-row"><span class="practice-filter-label">学科</span>${subjects.map(([v, l]) => `<button type="button" class="filter-chip${practiceFilter.subject === v ? ' active' : ''}" data-action="practice-filter" data-key="subject" data-value="${v}">${l}</button>`).join('')}</div>
+        <div class="practice-filter-row"><span class="practice-filter-label">类型</span>${tags.map(([v, l]) => `<button type="button" class="filter-chip${practiceFilter.tag === v ? ' active' : ''}" data-action="practice-filter" data-key="tag" data-value="${v}">${l}</button>`).join('')}</div>
+        <label class="practice-chapter-select"><span>章节</span><select id="practiceChapter">${renderPracticeChapterOptions()}</select></label>
+      </section>
+      <div class="practice-action-row">
+        <div><b>${pool.length}</b> 道符合条件 <span>· 随机抽 20 题练习</span></div>
+        <button type="button" class="btn btn-primary" data-action="practice-start">${icon('play')}开始练习</button>
+      </div>
+      <div class="practice-preview-grid">
+        ${preview.length ? preview.map(q => `<details class="practice-card">
+          <summary>
+            <span class="practice-card-top"><span class="chip ${q.tag === '易错' ? 'red' : 'gold'}">${q.tag}</span><span class="practice-card-kp">${esc(kpTitle(q.kp))}</span></span>
+            <span class="practice-card-stem">${raw(q.stem)}</span>
+          </summary>
+          <div class="practice-card-body"><b>答案：</b>${answerHTML(q)}<div class="practice-card-explain">${raw(q.explain)}</div></div>
+        </details>`).join('') : `<div class="empty" style="grid-column:1/-1"><p>当前筛选没有题目，换个条件试试。</p></div>`}
+      </div>
+      <div class="course-note">${icon('info')} 这里只做课后加练，不改变章节测试/综合测试的抽题范围；答错或手动加入的题仍会进入错题本。</div>
+    </div>`;
+  }
+
+  function startPractice() {
+    const pool = practicePool();
+    if (!pool.length) { toast('当前筛选没有题目'); return; }
+    const qs = shuffle(pool).slice(0, 20);
+    quizSession = {
+      param: 'practice',
+      practice: true,
+      chapterId: null,
+      title: '课后习题 · 易错易混',
+      qs,
+      index: 0,
+      responses: {},
+      selected: null,
+      startedAt: Date.now(),
+      finished: false,
+      finishedAt: null
+    };
+    if (location.hash === '#/quiz/practice') renderRoute({ keepScroll: false });
+    else location.hash = '#/quiz/practice';
   }
 
   function renderNotFound() {
