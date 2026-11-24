@@ -19,6 +19,7 @@
   const QUESTIONS = [
     ...window.QUESTION_BANK,
     ...(window.QUESTION_BANK_EXTRA || []),
+    ...(window.QUESTION_BANK_EXPAND || []),
     ...(window.QUESTION_BANK_DRAWING || [])
   ].filter(q => !EXAMPLE_DUPLICATE_IDS.has(q.id));
   const PLAN = window.STUDY_PLAN;
