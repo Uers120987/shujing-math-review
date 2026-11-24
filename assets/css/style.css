@@ -1224,6 +1224,13 @@ mjx-container[display="true"]::-webkit-scrollbar { width: 0; height: 0; display:
   background: var(--surface);
 }
 .adaptive-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.adaptive-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.adaptive-plan-empty { border-style: dashed; }
+.plan-pick-empty { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 15px 16px; border: 1px dashed var(--line-strong); border-radius: 10px; background: var(--surface-2); color: var(--muted); }
+.plan-pick-empty > svg { flex: none; width: 22px; height: 22px; color: var(--accent); }
+.plan-pick-empty b { display: block; color: var(--ink-2); font-size: 12px; }
+.plan-pick-empty p { margin-top: 3px; color: var(--faint); font-size: 10px; line-height: 1.6; }
+.plan-pick-empty .btn { margin-left: auto; flex: none; }
 .adaptive-head .eyebrow { color: var(--teal); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
 .adaptive-head h2 { font-family: var(--font-display); font-size: 26px; font-weight: 600; margin-top: 3px; }
 .adaptive-head p { color: var(--muted); font-size: 11.5px; line-height: 1.75; max-width: 660px; margin-top: 5px; }
@@ -1305,7 +1312,11 @@ mjx-container[display="true"]::-webkit-scrollbar { width: 0; height: 0; display:
 .schedule-foot { display: flex; flex-wrap: wrap; gap: 7px 16px; justify-content: space-between; margin-top: 14px; color: var(--faint); font-size: 9.5px; line-height: 1.6; }
 .schedule-warning { color: var(--red); }
 
-.plan-template-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 32px; }
+.plan-pick-hint { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 10.5px; line-height: 1.6; }
+.plan-pick-hint svg { flex: none; width: 15px; height: 15px; color: var(--accent); }
+.plan-template-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.plan-template-actions > span { margin-right: 3px; color: var(--faint); font-size: 9.5px; }
+.plan-template-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 22px; }
 .plan-template-head .eyebrow { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
 .plan-template-head h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin-top: 2px; }
 .plan-template-head > span { color: var(--faint); font-size: 10px; }

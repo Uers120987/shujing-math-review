@@ -1793,6 +1793,18 @@
     return weight + (100 - chapterPct(p.c.id)) * 0.12;
   }
 
+  function selectedPlanTasks() {
+    return PLAN.flatMap(p => p.tasks).filter(t => state.plan[t.id]);
+  }
+
+  function planTaskMinutes(t) {
+    if (t.kind === '测试') return 45;
+    if (t.kind === '错题') return 40;
+    if (t.kind === '公式') return 20;
+    if (t.kind === '复盘') return 30;
+    return 30;
+  }
+
   function buildAdaptivePlan() {
     const cfg = state.schedule || {};
     const preview = !cfg.examDate;
@@ -1814,7 +1826,20 @@
 
     const reviewMin = daily >= 60 ? 15 : 10;
     const contentMin = Math.max(10, daily - reviewMin);
-    const plans = CHAPTERS.map(c => {
+    const selectedTasks = selectedPlanTasks();
+    const hasSelection = selectedTasks.length > 0;
+    const selectedChapters = new Set(selectedTasks.map(t => t.chapter).filter(id => id && chapterById.has(id)));
+    const standaloneSessions = selectedTasks
+      .filter(t => !t.chapter || !chapterById.has(t.chapter))
+      .map(t => ({
+        chapterId: null,
+        title: t.title,
+        label: t.kind === '测试' ? '限时测试' : t.kind === '错题' ? '错题复盘' : t.kind === '公式' ? '公式闪回' : '六周模板',
+        minutes: planTaskMinutes(t),
+        left: planTaskMinutes(t),
+        taken: 0
+      }));
+    const plans = CHAPTERS.filter(c => selectedChapters.has(c.id)).map(c => {
       const qTotal = chapterTotal(c.id);
       const read = readCount(c);
       const best = quizBest(c.id);
@@ -1825,7 +1850,18 @@
     });
     plans.forEach(p => { p.priority = adaptivePriority(p); });
 
-    const need = plans.reduce((n, p) => n + p.remain, 0);
+    const standaloneNeed = standaloneSessions.reduce((n, s) => n + s.minutes, 0);
+    if (!hasSelection) {
+      return {
+        preview, exam, calDays, daily, rest, reviewMin, contentMin,
+        dates, plans: [], sessions: [], standaloneSessions: [], selectedTasks: [],
+        hasSelection: false, need: 0, capacity: dates.length * daily, required: dates.length * reviewMin,
+        ratio: 1, recommended: 0, budget: 0, days: [], unscheduled: [], unplacedSessions: [], allDone: false,
+        scheduledChapters: 0, surplus: 0, shortfall: 0
+      };
+    }
+
+    const need = plans.reduce((n, p) => n + p.remain, 0) + standaloneNeed;
     const capacity = dates.length * daily;
     const required = need + dates.length * reviewMin;
     const ratio = required > 0 ? capacity / required : 1;
@@ -1859,6 +1895,7 @@
     const order = [...plans];
     const sessions = [];
     order.forEach(p => { if (p.planned > 0) sessions.push(...makeChapterSessions(p)); });
+    standaloneSessions.forEach(s => sessions.push(s));
 
     const days = [];
     let sessionIndex = 0;
@@ -1905,12 +1942,14 @@
     });
 
     const unscheduled = plans.filter(p => p.planned === 0).map(p => p.c);
+    const unplacedSessions = sessions.slice(sessionIndex).map(s => s.title);
     const allDone = plans.every(p => p.read >= p.c.kps.length && p.best >= p.qTotal);
     const scheduledChapters = plans.filter(p => p.planned > 0).length;
     return {
       preview, exam, calDays, daily, rest, reviewMin, contentMin,
       dates, plans, need, capacity, required, ratio, recommended,
-      budget, days, sessions, unscheduled, allDone, scheduledChapters,
+      budget, days, sessions, standaloneSessions, selectedTasks, hasSelection,
+      unscheduled, unplacedSessions, allDone, scheduledChapters,
       surplus: Math.max(0, capacity - required),
       shortfall: Math.max(0, required - capacity)
     };
@@ -1986,6 +2025,19 @@
 
   function renderAdaptivePlan() {
     const p = buildAdaptivePlan();
+    if (!p.hasSelection) {
+      return `<section class="adaptive-plan adaptive-plan-empty">
+        <div class="adaptive-head">
+          <div>
+            <div class="eyebrow">ADAPTIVE SCHEDULE</div>
+            <h2>先选任务，再排时间</h2>
+            <p>在上方六周模板里勾选这轮要完成的任务；系统只按勾选的任务、考试日期和每天可用时间排表。</p>
+          </div>
+          <span class="chip gold">尚未选择</span>
+        </div>
+        <div class="plan-pick-empty">${icon('plan')}<div><b>还没有选择任务</b><p>可以先勾选几个章节任务，或者直接全选，再设置考试日期。</p></div><button class="btn btn-soft btn-sm" type="button" data-action="plan-select-all">全选任务</button></div>
+      </section>`;
+    }
     const status = adaptiveStatus(p);
     const todayStr = todayKey(startOfDay(new Date()));
     const dateValue = state.schedule?.examDate || '';
@@ -1999,10 +2051,13 @@
       <div class="adaptive-head">
         <div>
           <div class="eyebrow">ADAPTIVE SCHEDULE</div>
-          <h2>按考试时间，重排你的进度</h2>
-          <p>填考试日期和每天能拿出的时间，系统会按剩余知识点、章节测试进度和错题情况，重新分配每天的任务。</p>
+          <h2>按勾选任务和考试时间，重排进度</h2>
+          <p>只排你勾选的任务：已选 ${p.selectedTasks.length} 个，其中 ${p.plans.length} 个章节任务会按剩余知识点和测试进度分配时间。</p>
         </div>
-        <span class="chip ${p.preview ? 'gold' : 'teal'}">${p.preview ? '30 天预览' : `${p.calDays} 天后考试`}</span>
+        <div class="adaptive-chips">
+          <span class="chip teal">已选 ${p.selectedTasks.length} 项</span>
+          <span class="chip ${p.preview ? 'gold' : 'teal'}">${p.preview ? '30 天预览' : `${p.calDays} 天后考试`}</span>
+        </div>
       </div>
 
       <div class="schedule-settings">
@@ -2070,6 +2125,7 @@
       <div class="schedule-foot">
         <span>${p.preview ? '这是 30 天预览：选择考试日期后，计划会按真实剩余天数重算。' : `已按 ${restLabel} 跳过休息日，考试前一天不安排新任务。`}</span>
         ${p.unscheduled.length ? `<span class="schedule-warning">时间不足，暂未排入：${p.unscheduled.map(c => c.title).join('、')}</span>` : ''}
+        ${p.unplacedSessions?.length ? `<span class="schedule-warning">这些任务还没排进学习日：${p.unplacedSessions.join('、')}</span>` : ''}
       </div>
     </section>`;
   }
@@ -2094,7 +2150,7 @@
         <div class="progress"><i id="phaseBar-${phase.id}" style="width:${pp}%"></i></div>
         <div class="tasks">
           ${phase.tasks.map(t => `<div class="task${state.plan[t.id] ? ' done' : ''}" data-task="${t.id}">
-            <button class="task-check" type="button" data-action="toggle-plan" data-id="${t.id}" aria-label="标记完成" aria-pressed="${!!state.plan[t.id]}">${icon('check')}</button>
+            <button class="task-check" type="button" data-action="toggle-plan" data-id="${t.id}" aria-label="选择任务" aria-pressed="${!!state.plan[t.id]}">${icon('check')}</button>
             <div class="task-main">
               <div class="task-title">${esc(t.title)}</div>
               <div class="task-desc">${esc(t.desc)}</div>
@@ -2113,20 +2169,25 @@
         <div>
           <div class="hero-kicker" style="color:var(--accent)">ADAPTIVE + SIX-WEEK</div>
           <h1>复习计划</h1>
-          <p>先用考试日期和每天可用时间重排主线，再用六周模板推进题型强化与冲刺。计划会随你的阅读、测试进度重新计算。</p>
+          <p>先从六周模板里勾选这轮要完成的任务，再按考试日期和每天可用时间排表。计划只围绕你勾选的任务展开。</p>
         </div>
         <div class="plan-progress">
-          <b id="planOverall">${pct}%</b><span>六周模板完成度</span>
+          <b id="planOverall">${pct}%</b><span>本轮任务已选</span>
           <div class="progress"><i id="planBar" style="width:${pct}%"></i></div>
         </div>
       </div>
-      ${renderAdaptivePlan()}
-      <div class="plan-note">训练设计参考宋浩 750 题的题型分类思路与网课节奏：先按章节建立框架，再按题型集中突破，最后用错题和限时卷收口。站内题目与解析均为原创，不复制课程或题集原文，也不替代教材课后题与真题。</div>
+      <div class="plan-pick-hint">${icon('plan')} 先勾选这轮要完成的任务，再设置考试日期和每天可用时间；下面的时间表只按勾选的任务排。</div>
       <div class="plan-template-head">
         <div><div class="eyebrow">SIX-WEEK TEMPLATE</div><h2>六周模板 · 可勾选任务</h2></div>
-        <span>${PLAN.reduce((n, p) => n + p.tasks.length, 0)} 个任务，按需取用</span>
+        <div class="plan-template-actions">
+          <span>${PLAN.reduce((n, p) => n + p.tasks.length, 0)} 个任务，按需取用</span>
+          <button class="btn btn-ghost btn-sm" type="button" data-action="plan-select-all">全选</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-action="plan-clear">清空</button>
+        </div>
       </div>
       ${phases}
+      <div class="plan-note">训练设计参考宋浩 750 题的题型分类思路与网课节奏：先按章节建立框架，再按题型集中突破，最后用错题和限时卷收口。站内题目与解析均为原创，不复制课程或题集原文，也不替代教材课后题与真题。</div>
+      ${renderAdaptivePlan()}
     </div>`;
   }
 
@@ -2451,8 +2512,22 @@
         else state.plan[id] = true;
         markActivity(1);
         saveState();
-        updatePlanUI();
-        toast(state.plan[id] ? '计划 +1' : '已取消勾选');
+        renderRoute({ keepScroll: true });
+        toast(state.plan[id] ? '已加入本轮计划' : '已从计划中移除');
+        break;
+      }
+      case 'plan-select-all': {
+        PLAN.flatMap(p => p.tasks).forEach(t => { state.plan[t.id] = true; });
+        saveState();
+        renderRoute({ keepScroll: true });
+        toast('已全选六周任务，时间表已重排');
+        break;
+      }
+      case 'plan-clear': {
+        state.plan = {};
+        saveState();
+        renderRoute({ keepScroll: true });
+        toast('已清空任务选择');
         break;
       }
       case 'toggle-review': {
