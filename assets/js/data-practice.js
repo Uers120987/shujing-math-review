@@ -1,6 +1,8 @@
 /* 课后习题 · 高数 / 线代易错易混参数变式
-   每个模板生成 12 道不同数值的原创变式；不进入章节测试和综合测试。 */
+   每个模板生成 84 道不同参数的原创变式：高数 1008、线代 1008。
+   这些题只进入课后习题，不进入章节测试和综合测试。 */
 const PX = String.raw;
+const PRACTICE_VARIANTS = 84;
 
 window.PRACTICE_TEMPLATES = [
   /* ---------------- 高等数学 ---------------- */
@@ -319,7 +321,7 @@ window.PRACTICE_TEMPLATES = [
 
 window.PRACTICE_QUESTIONS = [];
 window.PRACTICE_TEMPLATES.forEach(t => {
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < PRACTICE_VARIANTS; i++) {
     const v = t.make(i);
     window.PRACTICE_QUESTIONS.push({
       id: `p-${t.key}-${i + 1}`,
