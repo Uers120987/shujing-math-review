@@ -219,6 +219,10 @@
     }
 
     out.plan = { ...(remote.plan || {}), ...(local.plan || {}) };
+    out.practiceHistory = [...new Set([
+      ...(remote.practiceHistory || []),
+      ...(local.practiceHistory || [])
+    ])].slice(-800);
     out.course = { ...(remote.course || {}), ...(local.course || {}) };
 
     out.quiz = { ...(remote.quiz || {}) };

@@ -179,7 +179,8 @@
     days: {},
     lastChapter: null,
     lastKp: null,
-    exams: []
+    exams: [],
+    practiceHistory: []
   };
 
   function loadState() {
@@ -198,7 +199,8 @@
         schedule: { ...DEFAULT_STATE.schedule, ...(p.schedule || {}) },
         stats: { ...DEFAULT_STATE.stats, ...(p.stats || {}) },
         days: p.days || {},
-        exams: Array.isArray(p.exams) ? p.exams : []
+        exams: Array.isArray(p.exams) ? p.exams : [],
+        practiceHistory: Array.isArray(p.practiceHistory) ? p.practiceHistory : []
       };
     } catch (e) {
       console.warn('读取本地进度失败', e);
@@ -2731,7 +2733,7 @@
         <label class="practice-chapter-select"><span>章节</span><select id="practiceChapter">${renderPracticeChapterOptions()}</select></label>
       </section>
       <div class="practice-action-row">
-        <div><b>${pool.length}</b> 道符合条件 <span>· 随机抽 20 题练习</span></div>
+        <div><b>${pool.length}</b> 道符合条件 <span>· 本轮抽 20 题，最近做过的会先跳过</span></div>
         <button type="button" class="btn btn-primary" data-action="practice-start">${icon('play')}开始练习</button>
       </div>
       <div class="practice-preview-grid">
@@ -2747,10 +2749,27 @@
     </div>`;
   }
 
+  function pickPracticeQuestions(pool, count = 20) {
+    const history = (state.practiceHistory || []).filter(id => pool.some(q => q.id === id));
+    const maxExclude = Math.max(0, pool.length - count);
+    const excluded = new Set(history.slice(-Math.min(history.length, maxExclude)));
+    const fresh = pool.filter(q => !excluded.has(q.id));
+    const picked = shuffle(fresh).slice(0, count);
+    if (picked.length < count) {
+      const pickedIds = new Set(picked.map(q => q.id));
+      const fill = shuffle(pool.filter(q => !pickedIds.has(q.id))).slice(0, count - picked.length);
+      picked.push(...fill);
+    }
+    const nextHistory = [...(state.practiceHistory || []), ...picked.map(q => q.id)];
+    state.practiceHistory = nextHistory.slice(-800);
+    saveState();
+    return picked;
+  }
+
   function startPractice() {
     const pool = practicePool();
     if (!pool.length) { toast('当前筛选没有题目'); return; }
-    const qs = shuffle(pool).slice(0, 20);
+    const qs = pickPracticeQuestions(pool, 20);
     quizSession = {
       param: 'practice',
       practice: true,
